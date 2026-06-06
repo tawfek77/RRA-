@@ -55,6 +55,11 @@ function logVisitor(req, action) {
 // Serve the HTML file
 app.get('/', (req, res) => {
     logVisitor(req, 'Page View');
+    res.redirect('/rra');
+});
+
+app.get('/rra', (req, res) => {
+    logVisitor(req, 'Page View /rra');
     res.sendFile(HTML_PATH);
 });
 
@@ -220,7 +225,7 @@ app.post('/api/admin/users/delete', adminAuth, (req, res) => {
     }
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Backend server running on http://localhost:${PORT}`);
 });
