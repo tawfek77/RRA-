@@ -45,7 +45,8 @@ const KeySchema = new mongoose.Schema({
     key: { type: String, unique: true, required: true },
     type: { type: String, required: true }, // '1h', '1d', '30d', '60d', 'lifetime'
     createdAt: { type: Date, default: Date.now },
-    boundIP: { type: String, default: null }
+    boundIP: { type: String, default: null },
+    boundDeviceId: { type: String, default: null }
 });
 
 const LogSchema = new mongoose.Schema({
@@ -104,7 +105,7 @@ app.get('/', (req, res) => {
 
 // Verify Key API
 app.post('/api/verify', async (req, res) => {
-    const { key } = req.body;
+    const { key, deviceId } = req.body;
     const ip = await logVisitor(req, `Attempt verify: ${key}`);
     
     if (!key) {
@@ -130,15 +131,25 @@ app.post('/api/verify', async (req, res) => {
             }
         }
 
-        // Check IP Binding
-        if (keyData.boundIP && keyData.boundIP !== ip) {
-            return res.status(401).json({ success: false, message: 'Key bound to another device' });
-        }
-
-        // Bind IP if not bound
-        if (!keyData.boundIP) {
-            keyData.boundIP = ip;
-            await keyData.save();
+        // Check Device Binding (if provided by client)
+        if (deviceId) {
+            if (keyData.boundDeviceId && keyData.boundDeviceId !== deviceId) {
+                return res.status(401).json({ success: false, message: 'Key bound to another device' });
+            }
+            if (!keyData.boundDeviceId) {
+                keyData.boundDeviceId = deviceId;
+                keyData.boundIP = ip;
+                await keyData.save();
+            }
+        } else {
+            // Fallback to IP Binding for older clients
+            if (keyData.boundIP && keyData.boundIP !== ip) {
+                return res.status(401).json({ success: false, message: 'Key bound to another device' });
+            }
+            if (!keyData.boundIP) {
+                keyData.boundIP = ip;
+                await keyData.save();
+            }
         }
 
         res.json({ success: true, message: 'Access Granted' });
@@ -150,6 +161,7 @@ app.post('/api/verify', async (req, res) => {
 // Check Session API
 app.get('/api/session', async (req, res) => {
     const key = req.query.key;
+    const deviceId = req.query.deviceId;
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     
     if (!key) {
@@ -175,9 +187,16 @@ app.get('/api/session', async (req, res) => {
             }
         }
 
-        // Check IP
-        if (keyData.boundIP && keyData.boundIP !== ip) {
-            return res.json({ valid: false });
+        // Check Device Binding
+        if (deviceId && keyData.boundDeviceId) {
+            if (keyData.boundDeviceId !== deviceId) {
+                return res.json({ valid: false });
+            }
+        } else {
+            // Fallback to IP check
+            if (keyData.boundIP && keyData.boundIP !== ip) {
+                return res.json({ valid: false });
+            }
         }
 
         res.json({ valid: true });
@@ -266,13 +285,14 @@ app.post('/api/admin/generate', adminAuth, async (req, res) => {
     }
 });
 
-// Admin: Reset Key (Unbind IP)
+// Admin: Reset Key (Unbind IP & Device ID)
 app.post('/api/admin/reset', adminAuth, async (req, res) => {
     const { key } = req.body;
     try {
         const keyItem = await Key.findOne({ key });
         if (keyItem) {
             keyItem.boundIP = null;
+            keyItem.boundDeviceId = null;
             await keyItem.save();
             res.json({ success: true });
         } else {
